@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegisterResponseDto {
-    private Long userId;
+    private String userId;
     private String username;
     private String message;
 }

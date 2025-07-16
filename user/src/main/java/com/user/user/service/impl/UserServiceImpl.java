@@ -1,6 +1,7 @@
 package com.user.user.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -91,7 +92,7 @@ public class UserServiceImpl implements UserService {
             user.setPassword(hashedPassword);
             
             user.setCreatedAt(LocalDateTime.now());
-            
+            user.setId(UUID.randomUUID().toString()); // Generate a unique ID
             User savedUser = userRepository.save(user);
             
             if (savedUser == null) {
@@ -130,23 +131,14 @@ public class UserServiceImpl implements UserService {
                 );
                 return ResponseEntity.badRequest().body(errorResponse);
             }
-            if (password == null || password.trim().isEmpty()) {
+                        if (password == null || password.trim().isEmpty()) {
                 RegisterErrorResponse errorResponse = new RegisterErrorResponse(    
                     400,    
-                    "Bad Request",
-                    "Password is required for login"
-                );
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-
-            if (password == null || password.trim().isEmpty()) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
-                    400, 
-                    "Bad Request", 
-                    "Password is required for login"
-                );
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
+                     "Bad Request",
+                     "Password is required for login"
+                 );
+                 return ResponseEntity.badRequest().body(errorResponse);
+             }
 
             User user = userRepository.findByUsername(username);
             if (user == null) {
@@ -185,7 +177,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<?> userProfile(long id) {
+    public ResponseEntity<?> userProfile(String id) {
         try {
             User user = userRepository.findById(id).orElse(null);
             if (user == null) {
