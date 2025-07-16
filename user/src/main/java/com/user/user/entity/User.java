@@ -2,10 +2,6 @@ package com.user.user.entity;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.ColumnDefault;
-import org.springframework.boot.context.properties.bind.DefaultValue;
-
-import jakarta.annotation.Nonnull;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -33,6 +29,5 @@ public class User {
     private String lastName;
     @Column(nullable = false)
     private String password;
-    @ColumnDefault("'CURRENT_TIMESTAMP'")
     private LocalDateTime createdAt;
 }
