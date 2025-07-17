@@ -14,7 +14,7 @@ import com.user.user.dto.RegisterResponseDto;
 import com.user.user.dto.LoginRequestDto;
 import com.user.user.dto.LoginResponseDto;
 import com.user.user.dto.ProfileResponseDto;
-import com.user.user.dto.RegisterErrorResponse;
+import com.user.user.dto.ErrorResponse;
 import com.user.user.entity.User;
 import com.user.user.exception.UserRegistrationException;
 import com.user.user.repository.UserRepository;
@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<?> registerUser(RegisterRequestDto registerRequestDto) {
         try {
             if (registerRequestDto == null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     400, 
                     "Bad Request", 
                     "Registration request cannot be null"
@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
             }
             
             if (registerRequestDto.getUsername() == null || registerRequestDto.getUsername().trim().isEmpty()) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     400, 
                     "Bad Request", 
                     "Username is required"
@@ -53,7 +53,7 @@ public class UserServiceImpl implements UserService {
             }
             
             if (registerRequestDto.getEmail() == null || registerRequestDto.getEmail().trim().isEmpty()) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     400, 
                     "Bad Request", 
                     "Email is required"
@@ -64,7 +64,7 @@ public class UserServiceImpl implements UserService {
             // Check if username already exists
             User existingUserByUsername = userRepository.findByUsername(registerRequestDto.getUsername());
             if (existingUserByUsername != null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     409, 
                     "Conflict", 
                     "Username or email already exists."
@@ -74,7 +74,7 @@ public class UserServiceImpl implements UserService {
             
             User existingUserByEmail = userRepository.findByEmail(registerRequestDto.getEmail());
             if (existingUserByEmail != null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     409, 
                     "Conflict", 
                     "Username or email already exists."
@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
             User savedUser = userRepository.save(user);
             
             if (savedUser == null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     500, 
                     "Internal Server Error", 
                     "User registration failed - saved user is null"
@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+            ErrorResponse errorResponse = new ErrorResponse(
                 500, 
                 "Internal Server Error", 
                 "User registration failed: " + e.getMessage()
@@ -124,7 +124,7 @@ public class UserServiceImpl implements UserService {
             String password = loginRequestDto.getPassword();
 
             if (username == null || username.trim().isEmpty()) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     400,
                     "Bad Request",
                     "Username is required for login"
@@ -132,7 +132,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
                         if (password == null || password.trim().isEmpty()) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(    
+                ErrorResponse errorResponse = new ErrorResponse(    
                     400,    
                      "Bad Request",
                      "Password is required for login"
@@ -142,7 +142,7 @@ public class UserServiceImpl implements UserService {
 
             User user = userRepository.findByUsername(username);
             if (user == null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     404, 
                     "Not Found", 
                     "User not found with the provided username"
@@ -151,7 +151,7 @@ public class UserServiceImpl implements UserService {
             }
 
             if (!passwordEncoder.matches(password, user.getPassword())) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     401, 
                     "Unauthorized", 
                     "Invalid password"
@@ -167,7 +167,7 @@ public class UserServiceImpl implements UserService {
 
         }
         catch (Exception e) {
-            RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+            ErrorResponse errorResponse = new ErrorResponse(
                 500, 
                 "Internal Server Error", 
                 "Login failed: " + e.getMessage()
@@ -181,7 +181,7 @@ public class UserServiceImpl implements UserService {
         try {
             User user = userRepository.findById(id).orElse(null);
             if (user == null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+                ErrorResponse errorResponse = new ErrorResponse(
                     404, 
                     "Not Found", 
                     "User not found with the provided ID"
@@ -199,7 +199,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.ok(profileResponse);
         }
         catch (Exception e){
-            RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+            ErrorResponse errorResponse = new ErrorResponse(
                 500, 
                 "Internal Server Error", 
                 "User profile retrieval failed: " + e.getMessage()
