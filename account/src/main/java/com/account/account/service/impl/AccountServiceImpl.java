@@ -5,8 +5,6 @@ import com.account.account.dto.CreationRequest;
 import com.account.account.dto.CreationResponse;
 import com.account.account.dto.ErrorResponse;
 import com.account.account.entity.Account;
-import com.account.account.entity.AccountStatus;
-import com.account.account.entity.AccountType;
 import com.account.account.repository.AccountRepository;
 import com.account.account.service.interfaces.AccountService;
 import org.springframework.http.HttpStatus;
@@ -82,7 +80,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         try {
-            AccountType.valueOf(creationRequest.getAccountType().toString());
+            Account.AccountType.valueOf(creationRequest.getAccountType().toString());
         } catch (IllegalArgumentException e) {
             ErrorResponse errorResponse = new ErrorResponse(
                     400,
@@ -106,7 +104,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = new Account();
         account.setId(UUID.randomUUID().toString()); // Generate a unique ID
         account.setAccountType(request.getAccountType());
-        account.setStatus(AccountStatus.ACTIVE);
+        account.setStatus(Account.AccountStatus.ACTIVE);
         account.setBalance(request.getInitialBalance());
         account.setUserId(request.getUserId());
         account.setAccountNumber(generateAccountNumber());
