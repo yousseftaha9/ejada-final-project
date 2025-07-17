@@ -7,6 +7,8 @@ import com.account.account.service.interfaces.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -16,32 +18,34 @@ import java.util.stream.Collectors;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
+    private final WebClient.Builder webClientBuilder;
 
-    public AccountServiceImpl(AccountRepository accountRepository){
+    public AccountServiceImpl(AccountRepository accountRepository, WebClient.Builder webClientBuilder){
         this.accountRepository = accountRepository;
+        this.webClientBuilder = webClientBuilder;
     }
     // PUT /accounts/transfer: Update account Balance.
     public ResponseEntity<?> updateBalance(TransferRequest transferRequest){
         try{
             Account fromAccount = accountRepository.findById(transferRequest.getFromAccountId()).orElse(null);
             Account toAccount = accountRepository.findById(transferRequest.getToAccountId()).orElse(null);
-            if (fromAccount == null || toAccount == null) {
-                ErrorResponse errorResponse = new ErrorResponse(
-                        404,
-                        "Not Found",
-                        "Either one of the two account is not found"
-                );
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-            }
-
-            if(fromAccount.getBalance().compareTo(transferRequest.getAmount()) < 0){
-                ErrorResponse errorResponse = new ErrorResponse(
-                        400,
-                        "Bad Request",
-                        "Insufficient funds"
-                );
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-            }
+//            if (fromAccount == null || toAccount == null) {
+//                ErrorResponse errorResponse = new ErrorResponse(
+//                        404,
+//                        "Not Found",
+//                        "Either one of the two account is not found"
+//                );
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+//            }
+//
+//            if(fromAccount.getBalance().compareTo(transferRequest.getAmount()) < 0){
+//                ErrorResponse errorResponse = new ErrorResponse(
+//                        400,
+//                        "Bad Request",
+//                        "Insufficient funds"
+//                );
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+//            }
 
             toAccount.setBalance(toAccount.getBalance().add(transferRequest.getAmount()));
             fromAccount.setBalance((fromAccount.getBalance().subtract(transferRequest.getAmount())));
@@ -91,10 +95,9 @@ public class AccountServiceImpl implements AccountService {
         }
     }
     // POST /accounts: Creates a new bank account for a specified user.
-    public ResponseEntity<?> createAccount(CreationRequest creationRequest){
-
-
-        if(creationRequest.getUserId() == null){
+    public ResponseEntity<?> createAccount(CreationRequest creationRequest) {
+        // Validate request first
+        if (creationRequest.getUserId() == null) {
             ErrorResponse errorResponse = new ErrorResponse(
                     400,
                     "Bad Request",
@@ -123,15 +126,44 @@ public class AccountServiceImpl implements AccountService {
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
-        Account account = buildAccount(creationRequest);
-        Account savedAccount = accountRepository.save(account);
+        // Try to get user profile with proper error handling
+        try {
+            ProfileResponseDto user = webClientBuilder.build()
+                    .get()
+                    .uri("http://localhost:8081/user/" + creationRequest.getUserId() + "/profile")
+                    .retrieve()
+                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
+                        // Consume the response body but don't include it in the error
+                        return response.bodyToMono(String.class)
+                                .then(Mono.error(new RuntimeException("User not found with ID: " + creationRequest.getUserId())));
+                    })
+                    .bodyToMono(ProfileResponseDto.class)
+                    .block();
 
-        // Return response
-        return ResponseEntity.ok( new CreationResponse(
-                savedAccount.getId(),
-                savedAccount.getAccountNumber(),
-                "Account created successfully"
-        )) ;
+            Account account = buildAccount(creationRequest);
+            Account savedAccount = accountRepository.save(account);
+
+            return ResponseEntity.ok(new CreationResponse(
+                    savedAccount.getId(),
+                    savedAccount.getAccountNumber(),
+                    "Account created successfully"
+            ));
+
+        } catch (RuntimeException e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    404,
+                    "Not Found",
+                    e.getMessage()
+            );
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (Exception e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    500,
+                    "Internal Server Error",
+                    "Error while creating account: " + e.getMessage()
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
     private Account buildAccount(CreationRequest request) {
         Account account = new Account();
@@ -149,17 +181,24 @@ public class AccountServiceImpl implements AccountService {
     }
     // GET /users/{userId}/accounts: Lists all accounts associated with a given user.
     public ResponseEntity<?> getUserAccounts(String userId){
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    new ErrorResponse(400, "Bad Request", "User ID must be provided")
+            );
+        }
         try {
-            // check user first
-            // User
-//            if (accounts == null) {
-//                ErrorResponse errorResponse = new ErrorResponse(
-//                        404,
-//                        "Not Found",
-//                        "No accounts found for user ID a1b2c3d4-e5f6-7890-1234-567890abcdef."
-//                );
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-//            }
+            ProfileResponseDto user = webClientBuilder.build()
+                    .get()
+                    .uri("http://localhost:8081/user/" + userId + "/profile")
+                    .retrieve()
+                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
+                        // Consume the response body but don't include it in the error
+                        return response.bodyToMono(String.class)
+                                .then(Mono.error(new RuntimeException("User not found with ID: " + userId)));
+                    })
+                    .bodyToMono(ProfileResponseDto.class)
+                    .block();
+
             List<Account> accounts = accountRepository.findByUserId(userId);
             List<AccountResponse> response = accounts.stream()
                     .map(account -> new AccountResponse(
@@ -172,14 +211,19 @@ public class AccountServiceImpl implements AccountService {
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
-        }
-        catch (Exception e){
+        } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse(
-                    500,
-                    "Internal Server Error",
-                    "Account retrieval failed: " + e.getMessage()
+                    404,
+                    "Not Found",
+                    e.getMessage()
             );
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(
+                    new ErrorResponse(500,
+                            "Internal Server Error",
+                            "Account Retrieval failed: " + e.getMessage())
+            );
         }
     }
 }
