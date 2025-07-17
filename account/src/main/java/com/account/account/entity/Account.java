@@ -20,28 +20,21 @@ import java.time.LocalDateTime;
 public class Account {
     @Id
     private String id;
-
     @Column(nullable = false)
     private String userId;
-
     @Column(unique=true, nullable = false)
     private String accountNumber;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountType accountType;
-
     @Column(precision = 15, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private AccountStatus status = AccountStatus.ACTIVE;
-
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
-
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

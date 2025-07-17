@@ -6,11 +6,14 @@ import com.account.account.dto.CreationResponse;
 import com.account.account.dto.ErrorResponse;
 import com.account.account.entity.Account;
 import com.account.account.entity.AccountStatus;
+import com.account.account.entity.AccountType;
 import com.account.account.repository.AccountRepository;
 import com.account.account.service.interfaces.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -31,7 +34,7 @@ public class AccountServiceImpl implements AccountService {
                 ErrorResponse errorResponse = new ErrorResponse(
                         404,
                         "Not Found",
-                        "Account not found with the provided ID"
+                        "Account with ID " + id + " not Found"
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
@@ -62,12 +65,33 @@ public class AccountServiceImpl implements AccountService {
         // Create and save account
         if(creationRequest.getUserId() == null){
             ErrorResponse errorResponse = new ErrorResponse(
-                    500,
-                    "Internal Server Error",
-                    "the error is here"
+                    400,
+                    "Bad Request",
+                    "User ID should be provided"
             );
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.badRequest().body(errorResponse);
         }
+
+        if (creationRequest.getInitialBalance().compareTo(BigDecimal.ZERO) < 0) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    400,
+                    "Bad Request",
+                    "Invalid account balance"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        try {
+            AccountType.valueOf(creationRequest.getAccountType().toString());
+        } catch (IllegalArgumentException e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    400,
+                    "Bad Request",
+                    "Invalid account type"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
         Account account = buildAccount(creationRequest);
         Account savedAccount = accountRepository.save(account);
 
@@ -84,9 +108,7 @@ public class AccountServiceImpl implements AccountService {
         account.setAccountType(request.getAccountType());
         account.setStatus(AccountStatus.ACTIVE);
         account.setBalance(request.getInitialBalance());
-
         account.setUserId(request.getUserId());
-
         account.setAccountNumber(generateAccountNumber());
         return account;
     }
@@ -103,7 +125,7 @@ public class AccountServiceImpl implements AccountService {
 //                ErrorResponse errorResponse = new ErrorResponse(
 //                        404,
 //                        "Not Found",
-//                        "User not found with the provided ID"
+//                        "No accounts found for user ID a1b2c3d4-e5f6-7890-1234-567890abcdef."
 //                );
 //                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
 //            }
