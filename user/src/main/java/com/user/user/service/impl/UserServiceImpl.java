@@ -1,6 +1,7 @@
 package com.user.user.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,16 +20,20 @@ import com.user.user.entity.User;
 import com.user.user.exception.UserRegistrationException;
 import com.user.user.repository.UserRepository;
 import com.user.user.service.interfaces.UserService;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final WebClient webClient;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, WebClient.Builder webClientBuilder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8081").build();
     }
 
     @Override
@@ -178,33 +183,54 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<?> userProfile(String id) {
-        try {
-            User user = userRepository.findById(id).orElse(null);
-            if (user == null) {
-                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
-                    404, 
-                    "Not Found", 
-                    "User not found with the provided ID"
-                );
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-            }
+//        try {
+//            User user = userRepository.findById(id).orElse(null);
+//            if (user == null) {
+//                RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+//                    404,
+//                    "Not Found",
+//                    "User not found with the provided ID"
+//                );
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+//            }
+//
+//            ProfileResponseDto profileResponse = new ProfileResponseDto(
+//                user.getId(),
+//                user.getUsername(),
+//                user.getEmail(),
+//                user.getFirstName(),
+//                user.getLastName()
+//            );
+//            return ResponseEntity.ok(profileResponse);
+//        }
+//        catch (Exception e){
+//            RegisterErrorResponse errorResponse = new RegisterErrorResponse(
+//                500,
+//                "Internal Server Error",
+//                "User profile retrieval failed: " + e.getMessage()
+//            );
+//            return ResponseEntity.internalServerError().body(errorResponse);
+//        }
+        Optional<User> userOptional = userRepository.findById(id);
 
-            ProfileResponseDto profileResponse = new ProfileResponseDto(
-                user.getId(), 
-                user.getUsername(), 
-                user.getEmail(), 
-                user.getFirstName(), 
-                user.getLastName()
-            );
-            return ResponseEntity.ok(profileResponse);
-        }
-        catch (Exception e){
+        if (userOptional.isEmpty()) {
             RegisterErrorResponse errorResponse = new RegisterErrorResponse(
-                500, 
-                "Internal Server Error", 
-                "User profile retrieval failed: " + e.getMessage()
+                    404,
+                    "Not Found",
+                    "User not found with ID: " + id
             );
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         }
+
+        User user = userOptional.get();
+        ProfileResponseDto profileResponse = new ProfileResponseDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName()
+        );
+
+        return ResponseEntity.ok(profileResponse);
     }
 }

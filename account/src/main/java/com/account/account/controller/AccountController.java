@@ -1,6 +1,7 @@
 package com.account.account.controller;
 
 import com.account.account.dto.CreationRequest;
+import com.account.account.dto.TransferRequest;
 import com.account.account.service.interfaces.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,10 @@ public class AccountController {
     @Autowired
     AccountService accountService;
     // PUT /accounts/transfer: Update account Balance.
+    @PutMapping("/accounts/transfer")
+    public ResponseEntity<?> updateBalance(@RequestBody TransferRequest transferRequest){
+        return accountService.updateBalance(transferRequest);
+    }
     // GET /accounts/{accountId}: Retrieves details of a specific bank account.
     @GetMapping("/accounts/{id}")
     public ResponseEntity<?> getAccount(@PathVariable String id){

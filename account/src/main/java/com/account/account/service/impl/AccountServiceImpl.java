@@ -1,9 +1,6 @@
 package com.account.account.service.impl;
 
-import com.account.account.dto.AccountResponse;
-import com.account.account.dto.CreationRequest;
-import com.account.account.dto.CreationResponse;
-import com.account.account.dto.ErrorResponse;
+import com.account.account.dto.*;
 import com.account.account.entity.Account;
 import com.account.account.repository.AccountRepository;
 import com.account.account.service.interfaces.AccountService;
@@ -12,9 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +19,46 @@ public class AccountServiceImpl implements AccountService {
 
     public AccountServiceImpl(AccountRepository accountRepository){
         this.accountRepository = accountRepository;
+    }
+    // PUT /accounts/transfer: Update account Balance.
+    public ResponseEntity<?> updateBalance(TransferRequest transferRequest){
+        try{
+            Account fromAccount = accountRepository.findById(transferRequest.getFromAccountId()).orElse(null);
+            Account toAccount = accountRepository.findById(transferRequest.getToAccountId()).orElse(null);
+            if (fromAccount == null || toAccount == null) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                        404,
+                        "Not Found",
+                        "Either one of the two account is not found"
+                );
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            if(fromAccount.getBalance().compareTo(transferRequest.getAmount()) < 0){
+                ErrorResponse errorResponse = new ErrorResponse(
+                        400,
+                        "Bad Request",
+                        "Insufficient funds"
+                );
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            toAccount.setBalance(toAccount.getBalance().add(transferRequest.getAmount()));
+            fromAccount.setBalance((fromAccount.getBalance().subtract(transferRequest.getAmount())));
+            accountRepository.save(fromAccount);
+            accountRepository.save(toAccount);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Transfer done successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e){
+            ErrorResponse errorResponse = new ErrorResponse(
+                    500,
+                    "Internal Server Error",
+                    "Account retrieval failed: " + e.getMessage()
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
     public ResponseEntity<?> getAccount(String id) {
         try {
@@ -57,10 +92,8 @@ public class AccountServiceImpl implements AccountService {
     }
     // POST /accounts: Creates a new bank account for a specified user.
     public ResponseEntity<?> createAccount(CreationRequest creationRequest){
-//        User user = userRepository.findById(request.getUserId())
-//                .orElseThrow(() -> new UserNotFoundException(request.getUserId()));
 
-        // Create and save account
+
         if(creationRequest.getUserId() == null){
             ErrorResponse errorResponse = new ErrorResponse(
                     400,
