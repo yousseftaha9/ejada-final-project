@@ -16,14 +16,13 @@ import java.sql.Timestamp;
 public class Transaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @Column(name = "from_account_id", nullable = false)
-    private Long fromAccountId;
+    private String fromAccountId;
 
     @Column(name = "to_account_id", nullable = false)
-    private Long toAccountId;
+    private String toAccountId;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
