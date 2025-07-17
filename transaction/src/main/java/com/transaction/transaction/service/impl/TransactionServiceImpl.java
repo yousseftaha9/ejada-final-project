@@ -1,20 +1,21 @@
 package com.transaction.transaction.service.impl;
 
+import com.transaction.transaction.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.transaction.transaction.dto.AccountDto;
-import com.transaction.transaction.dto.ErrorResponse;
-import com.transaction.transaction.dto.ExecuteRequestDto;
-import com.transaction.transaction.dto.ExecuteResponseDto;
-import com.transaction.transaction.dto.InitiateRequestDto;
-import com.transaction.transaction.dto.InitiateResponseDto;
-import com.transaction.transaction.dto.TransferRequestDto;
 import com.transaction.transaction.entity.Transaction;
 import com.transaction.transaction.repository.TransactionRepository;
 import com.transaction.transaction.service.interfaces.TransactionService;
+import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -162,5 +163,79 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
+    @Override
+    public ResponseEntity<?> getAccountTransactions(String accountId) {
+        // Input validation
+        if (accountId == null || accountId.isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    new ErrorResponse(400, "Bad Request", "Account ID must be provided")
+            );
+        }
+
+        try {
+            // 1. Verify account exists
+            webClientBuilder.build()
+                    .get()
+                    .uri("http://localhost:8083/accounts/" + accountId)
+                    .retrieve()
+                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
+                        return Mono.error(new RuntimeException("Account not found with ID: " + accountId));
+                    })
+                    .bodyToMono(Void.class)
+                    .block();
+
+            // 2. Get transactions for account (both incoming and outgoing)
+            List<Transaction> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
+            List<Transaction> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
+
+            if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new ErrorResponse(404, "Not Found",
+                                "No transactions found for account ID " + accountId)
+                );
+            }
+
+            // 3. Process and combine transactions
+            List<TransactionResponse> response = new ArrayList<>();
+
+            // Outgoing transactions (negative amounts)
+            outgoingTransactions.stream()
+                    .map(transaction -> new TransactionResponse(
+                            transaction.getId(),
+                            transaction.getFromAccountId(),
+                            transaction.getAmount().negate(),
+                            transaction.getDescription(), // Make amount negative
+                            transaction.getTimestamp()
+                    ))
+                    .forEach(response::add);
+
+            // Incoming transactions (positive amounts)
+            incomingTransactions.stream()
+                    .map(transaction -> new TransactionResponse(
+                            transaction.getId(),
+                            transaction.getToAccountId(),
+                            transaction.getAmount(), // Keep amount positive
+                            transaction.getDescription(),
+                            transaction.getTimestamp()
+                    ))
+                    .forEach(response::add);
+
+            // Sort by timestamp (most recent first)
+            response.sort(Comparator.comparing(TransactionResponse::getTimestamp).reversed());
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Account not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new ErrorResponse(404, "Not Found", e.getMessage())
+                );
+            }
+            return ResponseEntity.internalServerError().body(
+                    new ErrorResponse(500, "Internal Server Error",
+                            "Failed to retrieve transactions: " + e.getMessage())
+            );
+        }
+    }
     
 }

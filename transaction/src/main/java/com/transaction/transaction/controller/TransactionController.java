@@ -7,23 +7,26 @@ import com.transaction.transaction.service.impl.TransactionServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
-@RequestMapping("/transactions")
+//@RequestMapping("/transactions")
 public class TransactionController {
     @Autowired
     private  TransactionServiceImpl transactionService;
  
-    @PostMapping("/transfer/initiation")
+    @PostMapping("/transactions/transfer/initiation")
     public ResponseEntity<?> initiateTransaction(@RequestBody InitiateRequestDto initiateRequestDto) {
         return transactionService.initiateTransaction(initiateRequestDto);
     }
-    @PostMapping("/transfer/execution")
+    @PostMapping("/transactions/transfer/execution")
     public ResponseEntity<?> executeTransaction(@RequestBody ExecuteRequestDto executeRequestDto) {
         return transactionService.executeTransaction(executeRequestDto);
+    }
+
+    @GetMapping("/accounts/{accountId}/transactions")
+    public ResponseEntity<?> getAccountTransactions(@PathVariable String accountId){
+        return transactionService.getAccountTransactions(accountId);
     }
 
 }

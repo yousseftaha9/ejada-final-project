@@ -8,5 +8,6 @@ import com.transaction.transaction.dto.InitiateRequestDto;
 public interface TransactionService {
     ResponseEntity<?> initiateTransaction(InitiateRequestDto initiateRequestDto);
     ResponseEntity<?> executeTransaction(ExecuteRequestDto executeRequestDto);
+    ResponseEntity<?> getAccountTransactions(String accountId);
    
 }
