@@ -1,6 +1,6 @@
 package com.account.account.dto;
 
-import com.account.account.entity.AccountType;
+import com.account.account.entity.Account;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class CreationRequest {
     private String userId;
-    private AccountType accountType;
+    private Account.AccountType accountType;
     private BigDecimal initialBalance;
 
 }

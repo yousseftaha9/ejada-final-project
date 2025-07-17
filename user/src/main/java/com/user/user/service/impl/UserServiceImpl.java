@@ -1,6 +1,7 @@
 package com.user.user.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,16 +20,20 @@ import com.user.user.entity.User;
 import com.user.user.exception.UserRegistrationException;
 import com.user.user.repository.UserRepository;
 import com.user.user.service.interfaces.UserService;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final WebClient webClient;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, WebClient.Builder webClientBuilder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8081").build();
     }
 
     @Override
@@ -189,11 +194,11 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-            ProfileResponseDto profileResponse = new ProfileResponseDto(
-                user.getId(), 
-                user.getUsername(), 
-                user.getEmail(), 
-                user.getFirstName(), 
+        ProfileResponseDto profileResponse = new ProfileResponseDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFirstName(),
                 user.getLastName()
             );
             return ResponseEntity.ok(profileResponse);
