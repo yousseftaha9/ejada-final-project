@@ -29,23 +29,23 @@ public class AccountServiceImpl implements AccountService {
         try{
             Account fromAccount = accountRepository.findById(transferRequest.getFromAccountId()).orElse(null);
             Account toAccount = accountRepository.findById(transferRequest.getToAccountId()).orElse(null);
-//            if (fromAccount == null || toAccount == null) {
-//                ErrorResponse errorResponse = new ErrorResponse(
-//                        404,
-//                        "Not Found",
-//                        "Either one of the two account is not found"
-//                );
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-//            }
-//
-//            if(fromAccount.getBalance().compareTo(transferRequest.getAmount()) < 0){
-//                ErrorResponse errorResponse = new ErrorResponse(
-//                        400,
-//                        "Bad Request",
-//                        "Insufficient funds"
-//                );
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-//            }
+           if (fromAccount == null || toAccount == null) {
+               ErrorResponse errorResponse = new ErrorResponse(
+                       404,
+                       "Not Found",
+                       "Either one of the two account is not found"
+               );
+               return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+           }
+
+           if(fromAccount.getBalance().compareTo(transferRequest.getAmount()) < 0){
+               ErrorResponse errorResponse = new ErrorResponse(
+                       400,
+                       "Bad Request",
+                       "Insufficient funds"
+               );
+               return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+           }
 
             toAccount.setBalance(toAccount.getBalance().add(transferRequest.getAmount()));
             fromAccount.setBalance((fromAccount.getBalance().subtract(transferRequest.getAmount())));

@@ -1,6 +1,7 @@
 package com.transaction.transaction.controller;
 
 
+import com.transaction.transaction.dto.ExecuteRequestDto;
 import com.transaction.transaction.dto.InitiateRequestDto;
 import com.transaction.transaction.service.impl.TransactionServiceImpl;
 
@@ -19,6 +20,10 @@ public class TransactionController {
     @PostMapping("/transfer/initiation")
     public ResponseEntity<?> initiateTransaction(@RequestBody InitiateRequestDto initiateRequestDto) {
         return transactionService.initiateTransaction(initiateRequestDto);
+    }
+    @PostMapping("/transfer/execution")
+    public ResponseEntity<?> executeTransaction(@RequestBody ExecuteRequestDto executeRequestDto) {
+        return transactionService.executeTransaction(executeRequestDto);
     }
 
 }

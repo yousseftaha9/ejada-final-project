@@ -8,8 +8,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.transaction.transaction.dto.AccountDto;
 import com.transaction.transaction.dto.ErrorResponse;
 import com.transaction.transaction.dto.ExecuteRequestDto;
+import com.transaction.transaction.dto.ExecuteResponseDto;
 import com.transaction.transaction.dto.InitiateRequestDto;
 import com.transaction.transaction.dto.InitiateResponseDto;
+import com.transaction.transaction.dto.TransferRequestDto;
 import com.transaction.transaction.entity.Transaction;
 import com.transaction.transaction.repository.TransactionRepository;
 import com.transaction.transaction.service.interfaces.TransactionService;
@@ -37,27 +39,47 @@ public class TransactionServiceImpl implements TransactionService {
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
-        AccountDto fromAccount = webClientBuilder.build()
-            .get()
-            .uri("http://localhost:8083/accounts/" + initiateRequestDto.getFromAccountId())
-            .retrieve()
-            .bodyToMono(AccountDto.class)
-            .block(); // blocking because we're not reactive here
+        AccountDto fromAccount;
+        AccountDto toAccount;
 
-        AccountDto toAccount = webClientBuilder.build()
-            .get()
-            .uri("http://localhost:8083/accounts/" + initiateRequestDto.getToAccountId())
-            .retrieve()
-            .bodyToMono(AccountDto.class)
-            .block();
+        try {
+            fromAccount = webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8083/accounts/" + initiateRequestDto.getFromAccountId())
+                .retrieve()
+                .bodyToMono(AccountDto.class)
+                .block();
 
-            if(fromAccount == null || toAccount == null) {
-                ErrorResponse errorResponse = new ErrorResponse(
-                    400, 
-                    "Bad Request", 
-                    "Invalid account details provided"
-                );
-                return ResponseEntity.badRequest().body(errorResponse);
+            toAccount = webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8083/accounts/" + initiateRequestDto.getToAccountId())
+                .retrieve()
+                .bodyToMono(AccountDto.class)
+                .block();
+
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                400,
+                "Bad Request",
+                "Failed to retrieve account information: " + e.getMessage()
+            );
+            return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
+        } catch (Exception e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                500,
+                "Internal Server Error",
+                "Failed to communicate with account service: " + e.getMessage()
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+
+        if (fromAccount == null || toAccount == null) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                400, 
+                "Bad Request", 
+                "Invalid account details provided"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
         }
         if(fromAccount.getBalance().compareTo(initiateRequestDto.getAmount()) < 0) {
             ErrorResponse errorResponse = new ErrorResponse(
@@ -89,8 +111,56 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public ResponseEntity<?> executeTransaction(ExecuteRequestDto executeRequestDto) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'executeTransaction'");
+        Transaction transaction = transactionRepository.findById(executeRequestDto.getTransactionId())
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if (transaction.getStatus() != Transaction.Status.INITIATED) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                400, 
+                "Bad Request", 
+                "Transaction is not in a state that can be executed"
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+        try {
+            webClientBuilder.build()
+                .put()
+                .uri("http://localhost:8083/accounts/transfer")
+                .bodyValue(new TransferRequestDto(
+                    transaction.getFromAccountId(),
+                    transaction.getToAccountId(),
+                    transaction.getAmount().doubleValue()
+                ))
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                400,
+                "Bad Request",
+                "Failed to execute transaction: " + e.getMessage()
+            );
+            return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
+        } catch (Exception e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                500,
+                "Internal Server Error",
+                "Failed to communicate with account service: " + e.getMessage()
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+
+        // Update transaction status to SUCCESS
+        transaction.setStatus(Transaction.Status.SUCCESS);
+        transactionRepository.save(transaction);
+
+        ExecuteResponseDto responseDto = new ExecuteResponseDto();
+        responseDto.setTransactionId(transaction.getId());
+        responseDto.setStatus(transaction.getStatus().name());
+        responseDto.setTimestamp(transaction.getTimestamp());
+        return ResponseEntity.ok(responseDto);
+
     }
+
     
 }
