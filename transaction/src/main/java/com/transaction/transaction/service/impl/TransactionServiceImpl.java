@@ -163,6 +163,83 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
+//    // First approach that is how to know the type from the amount positive or negative
+//    @Override
+//    public ResponseEntity<?> getAccountTransactions(String accountId) {
+//        // Input validation
+//        if (accountId == null || accountId.isBlank()) {
+//            return ResponseEntity.badRequest().body(
+//                    new ErrorResponse(400, "Bad Request", "Account ID must be provided")
+//            );
+//        }
+//
+//        try {
+//            // 1. Verify account exists
+//            webClientBuilder.build()
+//                    .get()
+//                    .uri("http://localhost:8083/accounts/" + accountId)
+//                    .retrieve()
+//                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
+//                        return Mono.error(new RuntimeException("Account not found with ID: " + accountId));
+//                    })
+//                    .bodyToMono(Void.class)
+//                    .block();
+//
+//            // 2. Get transactions for account (both incoming and outgoing)
+//            List<Transaction> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
+//            List<Transaction> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
+//
+//            if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                        new ErrorResponse(404, "Not Found",
+//                                "No transactions found for account ID " + accountId)
+//                );
+//            }
+//
+//            // 3. Process and combine transactions
+//            List<TransactionResponse> response = new ArrayList<>();
+//
+//            // Outgoing transactions (negative amounts)
+//            outgoingTransactions.stream()
+//                    .map(transaction -> new TransactionResponse(
+//                            transaction.getId(),
+//                            transaction.getToAccountId(),
+//                            transaction.getAmount().negate(),
+//                            transaction.getDescription(), // Make amount negative
+//                            transaction.getTimestamp()
+//                    ))
+//                    .forEach(response::add);
+//
+//            // Incoming transactions (positive amounts)
+//            incomingTransactions.stream()
+//                    .map(transaction -> new TransactionResponse(
+//                            transaction.getId(),
+//                            transaction.getFromAccountId(),
+//                            transaction.getAmount(), // Keep amount positive
+//                            transaction.getDescription(),
+//                            transaction.getTimestamp()
+//                    ))
+//                    .forEach(response::add);
+//
+//            // Sort by timestamp (most recent first)
+//            response.sort(Comparator.comparing(TransactionResponse::getTimestamp).reversed());
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (RuntimeException e) {
+//            if (e.getMessage().contains("Account not found")) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                        new ErrorResponse(404, "Not Found", e.getMessage())
+//                );
+//            }
+//            return ResponseEntity.internalServerError().body(
+//                    new ErrorResponse(500, "Internal Server Error",
+//                            "Failed to retrieve transactions: " + e.getMessage())
+//            );
+//        }
+//    }
+
+    // Second approach that is how to know the type from the type field
     @Override
     public ResponseEntity<?> getAccountTransactions(String accountId) {
         // Input validation
@@ -196,32 +273,34 @@ public class TransactionServiceImpl implements TransactionService {
             }
 
             // 3. Process and combine transactions
-            List<TransactionResponse> response = new ArrayList<>();
+            List<TransactionResponseWithType> response = new ArrayList<>();
 
             // Outgoing transactions (negative amounts)
             outgoingTransactions.stream()
-                    .map(transaction -> new TransactionResponse(
+                    .map(transaction -> new TransactionResponseWithType(
                             transaction.getId(),
-                            transaction.getFromAccountId(),
-                            transaction.getAmount().negate(),
+                            transaction.getToAccountId(),
+                            transaction.getAmount(),
                             transaction.getDescription(), // Make amount negative
-                            transaction.getTimestamp()
+                            transaction.getTimestamp(),
+                            "Sent"
                     ))
                     .forEach(response::add);
 
             // Incoming transactions (positive amounts)
             incomingTransactions.stream()
-                    .map(transaction -> new TransactionResponse(
+                    .map(transaction -> new TransactionResponseWithType(
                             transaction.getId(),
-                            transaction.getToAccountId(),
+                            transaction.getFromAccountId(),
                             transaction.getAmount(), // Keep amount positive
                             transaction.getDescription(),
-                            transaction.getTimestamp()
+                            transaction.getTimestamp(),
+                            "Delivered"
                     ))
                     .forEach(response::add);
 
             // Sort by timestamp (most recent first)
-            response.sort(Comparator.comparing(TransactionResponse::getTimestamp).reversed());
+            response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
 
             return ResponseEntity.ok(response);
 
@@ -237,5 +316,84 @@ public class TransactionServiceImpl implements TransactionService {
             );
         }
     }
-    
+
+
+//    // Third approach that is we will send the two from and to
+//    @Override
+//    public ResponseEntity<?> getAccountTransactions(String accountId) {
+//        // Input validation
+//        if (accountId == null || accountId.isBlank()) {
+//            return ResponseEntity.badRequest().body(
+//                    new ErrorResponse(400, "Bad Request", "Account ID must be provided")
+//            );
+//        }
+//
+//        try {
+//            // 1. Verify account exists
+//            webClientBuilder.build()
+//                    .get()
+//                    .uri("http://localhost:8083/accounts/" + accountId)
+//                    .retrieve()
+//                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
+//                        return Mono.error(new RuntimeException("Account not found with ID: " + accountId));
+//                    })
+//                    .bodyToMono(Void.class)
+//                    .block();
+//
+//            // 2. Get transactions for account (both incoming and outgoing)
+//            List<Transaction> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
+//            List<Transaction> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
+//
+//            if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                        new ErrorResponse(404, "Not Found",
+//                                "No transactions found for account ID " + accountId)
+//                );
+//            }
+//
+//            // 3. Process and combine transactions
+//            List<TransactionResponseWithTheTwo> response = new ArrayList<>();
+//
+//            // Outgoing transactions (negative amounts)
+//            outgoingTransactions.stream()
+//                    .map(transaction -> new TransactionResponseWithTheTwo(
+//                            transaction.getId(),
+//                            transaction.getToAccountId(),
+//                            transaction.getFromAccountId(),
+//                            transaction.getAmount(),
+//                            transaction.getDescription(), // Make amount negative
+//                            transaction.getTimestamp()
+//                    ))
+//                    .forEach(response::add);
+//
+//            // Incoming transactions (positive amounts)
+//            incomingTransactions.stream()
+//                    .map(transaction -> new TransactionResponseWithTheTwo(
+//                            transaction.getId(),
+//                            transaction.getToAccountId(),
+//                            transaction.getFromAccountId(),
+//                            transaction.getAmount(), // Keep amount positive
+//                            transaction.getDescription(),
+//                            transaction.getTimestamp()
+//                    ))
+//                    .forEach(response::add);
+//
+//            // Sort by timestamp (most recent first)
+//            response.sort(Comparator.comparing(TransactionResponseWithTheTwo::getTimestamp).reversed());
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (RuntimeException e) {
+//            if (e.getMessage().contains("Account not found")) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                        new ErrorResponse(404, "Not Found", e.getMessage())
+//                );
+//            }
+//            return ResponseEntity.internalServerError().body(
+//                    new ErrorResponse(500, "Internal Server Error",
+//                            "Failed to retrieve transactions: " + e.getMessage())
+//            );
+//        }
+//    }
 }
+
