@@ -7,6 +7,7 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="logging" />
         <module name="bff" />
         <module name="user" />
         <module name="account" />
@@ -18,6 +19,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="account" options="-parameters" />
       <module name="bff" options="-parameters" />
+      <module name="logging" options="-parameters" />
       <module name="transaction" options="-parameters" />
       <module name="user" options="-parameters" />
     </option>

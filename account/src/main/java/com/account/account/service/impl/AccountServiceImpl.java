@@ -4,13 +4,21 @@ import com.account.account.dto.*;
 import com.account.account.entity.Account;
 import com.account.account.repository.AccountRepository;
 import com.account.account.service.interfaces.AccountService;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +33,7 @@ public class AccountServiceImpl implements AccountService {
         this.webClientBuilder = webClientBuilder;
     }
     // PUT /accounts/transfer: Update account Balance.
+    @Override
     public ResponseEntity<?> updateBalance(TransferRequest transferRequest){
         try{
             Account fromAccount = accountRepository.findById(transferRequest.getFromAccountId()).orElse(null);
@@ -47,6 +56,7 @@ public class AccountServiceImpl implements AccountService {
                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
            }
 
+            fromAccount.setStatus(Account.AccountStatus.ACTIVE);
             toAccount.setBalance(toAccount.getBalance().add(transferRequest.getAmount()));
             fromAccount.setBalance((fromAccount.getBalance().subtract(transferRequest.getAmount())));
             accountRepository.save(fromAccount);
@@ -64,6 +74,8 @@ public class AccountServiceImpl implements AccountService {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
+    // Get /accounts/{accountID}
+    @Override
     public ResponseEntity<?> getAccount(String id) {
         try {
             Account account = accountRepository.findById(id).orElse(null);
@@ -95,6 +107,7 @@ public class AccountServiceImpl implements AccountService {
         }
     }
     // POST /accounts: Creates a new bank account for a specified user.
+    @Override
     public ResponseEntity<?> createAccount(CreationRequest creationRequest) {
         // Validate request first
         if (creationRequest.getUserId() == null) {
@@ -180,6 +193,7 @@ public class AccountServiceImpl implements AccountService {
         return String.format("%010d", new Random().nextInt(1_000_000_000));
     }
     // GET /users/{userId}/accounts: Lists all accounts associated with a given user.
+    @Override
     public ResponseEntity<?> getUserAccounts(String userId){
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.badRequest().body(
@@ -225,5 +239,65 @@ public class AccountServiceImpl implements AccountService {
                             "Account Retrieval failed: " + e.getMessage())
             );
         }
+    }
+
+    @Scheduled(fixedRate = 3600000)
+    @Async
+    @Transactional
+    public void refreshPricingParameters() {
+        List<Account> accounts = accountRepository.findByStatus(Account.AccountStatus.ACTIVE);
+        accounts.forEach(account -> {
+            webClientBuilder.build()
+                    .get()
+                    .uri("http://localhost:8082/accounts/{accountId}/transactions", account.getId())
+                    .retrieve()
+                    .onStatus(
+                            status -> status == HttpStatus.NOT_FOUND,
+                            response -> {
+                                deactivateAccountWithNoTransactions(account);
+                                return Mono.empty();
+                            }
+                    )
+                    .onStatus(
+                            status -> status.isError(),  // Fixed: Using lambda instead of method reference
+                            response -> Mono.empty()
+                    )
+                    .bodyToFlux(TransactionDto.class)
+                    .collectList()
+                    .timeout(Duration.ofSeconds(30))
+                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(1)))
+                    .onErrorResume(e -> Mono.empty())
+                    .subscribe(transactions -> {
+                        if (transactions != null && !transactions.isEmpty()) {
+                            List<TransactionDto> deliveredTransactions = transactions.stream()
+                                    .filter(t -> "Delivered".equals(t.getType()))
+                                    .collect(Collectors.toList());
+
+                            if (!deliveredTransactions.isEmpty()) {
+                                checkLastDeliveredTransaction(account, deliveredTransactions);
+                            } else {
+                                deactivateAccountWithNoTransactions(account);
+                            }
+                        }
+                    });
+        });
+    }
+
+    private void checkLastDeliveredTransaction(Account account, List<TransactionDto> transactions) {
+        TransactionDto lastTransaction = transactions.stream()
+                .max(Comparator.comparing(TransactionDto::getTimestamp))
+                .orElseThrow();
+
+        Instant twentyFourHoursAgo = Instant.now().minus(24, ChronoUnit.HOURS);
+
+        if (lastTransaction.getTimestamp().before(Timestamp.from(twentyFourHoursAgo))) {
+            account.setStatus(Account.AccountStatus.INACTIVE);
+            accountRepository.save(account);
+        }
+    }
+
+    private void deactivateAccountWithNoTransactions(Account account) {
+        account.setStatus(Account.AccountStatus.INACTIVE);
+        accountRepository.save(account);
     }
 }
