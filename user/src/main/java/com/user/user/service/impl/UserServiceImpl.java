@@ -1,7 +1,6 @@
 package com.user.user.service.impl;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +16,9 @@ import com.user.user.dto.LoginResponseDto;
 import com.user.user.dto.ProfileResponseDto;
 import com.user.user.dto.ErrorResponse;
 import com.user.user.entity.User;
-import com.user.user.exception.UserRegistrationException;
 import com.user.user.repository.UserRepository;
 import com.user.user.service.interfaces.UserService;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Service
 public class UserServiceImpl implements UserService {

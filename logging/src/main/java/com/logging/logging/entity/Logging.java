@@ -24,7 +24,7 @@ public class Logging {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private com.logging.logging.entity.MessageType messageType;
+    private MessageType messageType;
 
     @Column(nullable = false)
     private LocalDateTime dateTime;
