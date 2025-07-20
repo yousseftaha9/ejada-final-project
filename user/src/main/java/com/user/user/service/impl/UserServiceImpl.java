@@ -25,6 +25,10 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class UserServiceImpl implements UserService {
+    
+    @Autowired
+    private KafkaLogger kafkaLogger;
+    
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
@@ -39,12 +43,16 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> registerUser(RegisterRequestDto registerRequestDto) {
         try {
+            // Log the request
+            kafkaLogger.log(registerRequestDto, "Request");
+
             if (registerRequestDto == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     400, 
                     "Bad Request", 
                     "Registration request cannot be null"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
@@ -54,6 +62,7 @@ public class UserServiceImpl implements UserService {
                     "Bad Request", 
                     "Username is required"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
@@ -63,6 +72,7 @@ public class UserServiceImpl implements UserService {
                     "Bad Request", 
                     "Email is required"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
@@ -74,6 +84,7 @@ public class UserServiceImpl implements UserService {
                     "Conflict", 
                     "Username or email already exists."
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
             
@@ -84,6 +95,7 @@ public class UserServiceImpl implements UserService {
                     "Conflict", 
                     "Username or email already exists."
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
 
@@ -106,10 +118,12 @@ public class UserServiceImpl implements UserService {
                     "Internal Server Error", 
                     "User registration failed - saved user is null"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.internalServerError().body(errorResponse);
             }
             
             RegisterResponseDto response = new RegisterResponseDto(savedUser.getId(), savedUser.getUsername(), "User registered successfully");
+            kafkaLogger.log(response, "Response");
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -118,6 +132,7 @@ public class UserServiceImpl implements UserService {
                 "Internal Server Error", 
                 "User registration failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
@@ -125,6 +140,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> loginUser(LoginRequestDto loginRequestDto) {
         try {
+            // Log the request
+            kafkaLogger.log(loginRequestDto, "Request");
+
             String username = loginRequestDto.getUsername();
             String password = loginRequestDto.getPassword();
 
@@ -134,14 +152,16 @@ public class UserServiceImpl implements UserService {
                     "Bad Request",
                     "Username is required for login"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
-                        if (password == null || password.trim().isEmpty()) {
+            if (password == null || password.trim().isEmpty()) {
                 ErrorResponse errorResponse = new ErrorResponse(    
                     400,    
                      "Bad Request",
                      "Password is required for login"
                  );
+                 kafkaLogger.log(errorResponse, "Response");
                  return ResponseEntity.badRequest().body(errorResponse);
              }
 
@@ -152,6 +172,7 @@ public class UserServiceImpl implements UserService {
                     "Not Found", 
                     "User not found with the provided username"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
@@ -161,14 +182,13 @@ public class UserServiceImpl implements UserService {
                     "Unauthorized", 
                     "Invalid password"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
             }
 
             LoginResponseDto loginResponse = new LoginResponseDto(user.getId(), user.getUsername());
+            kafkaLogger.log(loginResponse, "Response");
             return ResponseEntity.ok(loginResponse);
-
-
-
 
         }
         catch (Exception e) {
@@ -177,6 +197,7 @@ public class UserServiceImpl implements UserService {
                 "Internal Server Error", 
                 "Login failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
@@ -184,6 +205,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> userProfile(String id) {
         try {
+            // Log the request
+            String requestJson = "{\"userId\":\"" + id + "\"}";
+            kafkaLogger.log(requestJson, "Request");
+
             User user = userRepository.findById(id).orElse(null);
             if (user == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -191,16 +216,18 @@ public class UserServiceImpl implements UserService {
                     "Not Found", 
                     "User not found with the provided ID"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-        ProfileResponseDto profileResponse = new ProfileResponseDto(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName()
-            );
+            ProfileResponseDto profileResponse = new ProfileResponseDto(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getFirstName(),
+                    user.getLastName()
+                );
+            kafkaLogger.log(profileResponse, "Response");
             return ResponseEntity.ok(profileResponse);
         }
         catch (Exception e){
@@ -209,6 +236,7 @@ public class UserServiceImpl implements UserService {
                 "Internal Server Error", 
                 "User profile retrieval failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
