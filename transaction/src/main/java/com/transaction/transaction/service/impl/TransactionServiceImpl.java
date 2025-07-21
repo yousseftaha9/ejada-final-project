@@ -19,7 +19,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
-
+    @Autowired
+    private KafkaLogger kafkaLogger;
+    
       private final WebClient.Builder webClientBuilder;
       private final TransactionRepository transactionRepository;
 
@@ -31,12 +33,14 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public ResponseEntity<?> initiateTransaction(InitiateRequestDto initiateRequestDto) {
+        kafkaLogger.log(initiateRequestDto, "Request");
         if (initiateRequestDto == null) {
             ErrorResponse errorResponse = new ErrorResponse(
                 400, 
                 "Bad Request", 
                 "Initiate request cannot be null"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -64,6 +68,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Bad Request",
                 "Failed to retrieve account information: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
         } catch (Exception e) {
             ErrorResponse errorResponse = new ErrorResponse(
@@ -71,6 +76,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Internal Server Error",
                 "Failed to communicate with account service: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
 
@@ -80,6 +86,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Bad Request", 
                 "Invalid account details provided"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
         if(fromAccount.getBalance().compareTo(initiateRequestDto.getAmount()) < 0) {
@@ -88,6 +95,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Bad Request", 
                 "Insufficient balance in the from account"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -106,12 +114,13 @@ public class TransactionServiceImpl implements TransactionService {
         initiateResponseDto.setStatus(transaction.getStatus().name());
             initiateResponseDto.setTimestamp(transaction.getTimestamp());
 
-        
+        kafkaLogger.log(initiateResponseDto, "Response");
         return ResponseEntity.ok(initiateResponseDto);
     }
 
     @Override
     public ResponseEntity<?> executeTransaction(ExecuteRequestDto executeRequestDto) {
+        kafkaLogger.log(executeRequestDto, "Request");
         Transaction transaction = transactionRepository.findById(executeRequestDto.getTransactionId())
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
@@ -121,6 +130,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Bad Request", 
                 "Transaction is not in a state that can be executed"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
         try {
@@ -141,6 +151,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Bad Request",
                 "Failed to execute transaction: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
         } catch (Exception e) {
             ErrorResponse errorResponse = new ErrorResponse(
@@ -148,6 +159,7 @@ public class TransactionServiceImpl implements TransactionService {
                 "Internal Server Error",
                 "Failed to communicate with account service: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
 
@@ -159,6 +171,8 @@ public class TransactionServiceImpl implements TransactionService {
         responseDto.setTransactionId(transaction.getId());
         responseDto.setStatus(transaction.getStatus().name());
         responseDto.setTimestamp(transaction.getTimestamp());
+
+        kafkaLogger.log(responseDto, "Response");
         return ResponseEntity.ok(responseDto);
 
     }
@@ -242,11 +256,14 @@ public class TransactionServiceImpl implements TransactionService {
     // Second approach that is how to know the type from the type field
     @Override
     public ResponseEntity<?> getAccountTransactions(String accountId) {
+        kafkaLogger.log(accountId, "Request");
         // Input validation
         if (accountId == null || accountId.isBlank()) {
-            return ResponseEntity.badRequest().body(
-                    new ErrorResponse(400, "Bad Request", "Account ID must be provided")
-            );
+            ErrorResponse errorResponse = new ErrorResponse(
+                    400, "Bad Request", "Account ID must be provided"
+            );            
+            kafkaLogger.log(errorResponse, "Response");
+            return ResponseEntity.badRequest().body(errorResponse);
         }
 
         try {
@@ -266,10 +283,15 @@ public class TransactionServiceImpl implements TransactionService {
             List<Transaction> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
 
             if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new ErrorResponse(404, "Not Found",
-                                "No transactions found for account ID " + accountId)
+                ErrorResponse errorResponse = new ErrorResponse(
+                        404, "Not Found",
+                        "No transactions found for account ID " + accountId
                 );
+                kafkaLogger.log(errorResponse, "Response");
+
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+                    
             }
 
             // 3. Process and combine transactions
@@ -302,17 +324,31 @@ public class TransactionServiceImpl implements TransactionService {
             // Sort by timestamp (most recent first)
             response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
 
+            // Log a summary instead of the full response to avoid data truncation
+            String summary = "Retrieved " + response.size() + " transactions for account " + accountId;
+            kafkaLogger.log(summary, "Response");
+
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Account not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new ErrorResponse(404, "Not Found", e.getMessage())
+                ErrorResponse errorResponse = new ErrorResponse(
+                        404, "Not Found", e.getMessage()
                 );
+                kafkaLogger.log(errorResponse, "Response");
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                         errorResponse);
             }
+            ErrorResponse errorResponse = new ErrorResponse(
+                    500, "Internal Server Error",
+                    "Failed to retrieve transactions: " + e.getMessage()
+            );
+            kafkaLogger.log(errorResponse, "Response");
+
             return ResponseEntity.internalServerError().body(
-                    new ErrorResponse(500, "Internal Server Error",
-                            "Failed to retrieve transactions: " + e.getMessage())
+
+                  errorResponse
             );
         }
     }

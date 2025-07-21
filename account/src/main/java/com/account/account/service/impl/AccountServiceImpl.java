@@ -5,6 +5,8 @@ import com.account.account.entity.Account;
 import com.account.account.repository.AccountRepository;
 import com.account.account.service.interfaces.AccountService;
 import jakarta.transaction.Transactional;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +26,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountService {
-
+    @Autowired
+    private KafkaLogger kafkaLogger;
+    
     private final AccountRepository accountRepository;
     private final WebClient.Builder webClientBuilder;
 
@@ -36,6 +40,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public ResponseEntity<?> updateBalance(TransferRequest transferRequest){
         try{
+            kafkaLogger.log(transferRequest, "Request");
             Account fromAccount = accountRepository.findById(transferRequest.getFromAccountId()).orElse(null);
             Account toAccount = accountRepository.findById(transferRequest.getToAccountId()).orElse(null);
            if (fromAccount == null || toAccount == null) {
@@ -44,6 +49,7 @@ public class AccountServiceImpl implements AccountService {
                        "Not Found",
                        "Either one of the two account is not found"
                );
+               kafkaLogger.log(errorResponse, "Response");
                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
            }
 
@@ -53,6 +59,7 @@ public class AccountServiceImpl implements AccountService {
                        "Bad Request",
                        "Insufficient funds"
                );
+                kafkaLogger.log(errorResponse, "Response");
                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
            }
 
@@ -64,6 +71,7 @@ public class AccountServiceImpl implements AccountService {
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Transfer done successfully");
+            kafkaLogger.log(response, "Response");
             return ResponseEntity.ok(response);
         } catch (Exception e){
             ErrorResponse errorResponse = new ErrorResponse(
@@ -71,6 +79,7 @@ public class AccountServiceImpl implements AccountService {
                     "Internal Server Error",
                     "Account retrieval failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
@@ -78,6 +87,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public ResponseEntity<?> getAccount(String id) {
         try {
+            kafkaLogger.log(id, "Request");
             Account account = accountRepository.findById(id).orElse(null);
             if (account == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -85,6 +95,7 @@ public class AccountServiceImpl implements AccountService {
                         "Not Found",
                         "Account with ID " + id + " not Found"
                 );
+                kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
@@ -95,6 +106,7 @@ public class AccountServiceImpl implements AccountService {
                     account.getBalance(),
                     account.getStatus()
             );
+            kafkaLogger.log(profileResponse, "Response");
             return ResponseEntity.ok(profileResponse);
         }
         catch (Exception e){
@@ -103,6 +115,7 @@ public class AccountServiceImpl implements AccountService {
                     "Internal Server Error",
                     "Account retrieval failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
@@ -110,12 +123,14 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public ResponseEntity<?> createAccount(CreationRequest creationRequest) {
         // Validate request first
+        kafkaLogger.log(creationRequest, "Request");
         if (creationRequest.getUserId() == null) {
             ErrorResponse errorResponse = new ErrorResponse(
                     400,
                     "Bad Request",
                     "User ID should be provided"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -125,6 +140,7 @@ public class AccountServiceImpl implements AccountService {
                     "Bad Request",
                     "Invalid account balance"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -136,6 +152,7 @@ public class AccountServiceImpl implements AccountService {
                     "Bad Request",
                     "Invalid account type"
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -156,11 +173,15 @@ public class AccountServiceImpl implements AccountService {
             Account account = buildAccount(creationRequest);
             Account savedAccount = accountRepository.save(account);
 
-            return ResponseEntity.ok(new CreationResponse(
+            CreationResponse response = new CreationResponse(
                     savedAccount.getId(),
                     savedAccount.getAccountNumber(),
                     "Account created successfully"
-            ));
+            );
+            kafkaLogger.log(response, "Response");
+
+            return ResponseEntity.ok(response);
+
 
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse(
@@ -168,6 +189,7 @@ public class AccountServiceImpl implements AccountService {
                     "Not Found",
                     e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         } catch (Exception e) {
             ErrorResponse errorResponse = new ErrorResponse(
@@ -175,6 +197,7 @@ public class AccountServiceImpl implements AccountService {
                     "Internal Server Error",
                     "Error while creating account: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
@@ -195,10 +218,16 @@ public class AccountServiceImpl implements AccountService {
     // GET /users/{userId}/accounts: Lists all accounts associated with a given user.
     @Override
     public ResponseEntity<?> getUserAccounts(String userId){
+        kafkaLogger.log(userId, "Request");
         if (userId == null || userId.isBlank()) {
-            return ResponseEntity.badRequest().body(
-                    new ErrorResponse(400, "Bad Request", "User ID must be provided")
+            ErrorResponse errorResponse = new ErrorResponse(
+                    400,
+                    "Bad Request",
+                    "User ID must be provided"
             );
+            kafkaLogger.log(errorResponse, "Response");
+            return ResponseEntity.badRequest().body(errorResponse);
+
         }
         try {
             ProfileResponseDto user = webClientBuilder.build()
@@ -207,6 +236,7 @@ public class AccountServiceImpl implements AccountService {
                     .retrieve()
                     .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
                         // Consume the response body but don't include it in the error
+
                         return response.bodyToMono(String.class)
                                 .then(Mono.error(new RuntimeException("User not found with ID: " + userId)));
                     })
@@ -223,6 +253,9 @@ public class AccountServiceImpl implements AccountService {
                             account.getStatus()
                     ))
                     .collect(Collectors.toList());
+             String summary = "Retrieved " + response.size() + " accounts for user " + userId;
+
+            kafkaLogger.log(summary, "Response");
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -231,13 +264,16 @@ public class AccountServiceImpl implements AccountService {
                     "Not Found",
                     e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new ErrorResponse(500,
-                            "Internal Server Error",
-                            "Account Retrieval failed: " + e.getMessage())
+            ErrorResponse errorResponse = new ErrorResponse(
+                    500,
+                    "Internal Server Error",
+                    "Account Retrieval failed: " + e.getMessage()
             );
+            kafkaLogger.log(errorResponse, "Response");
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
