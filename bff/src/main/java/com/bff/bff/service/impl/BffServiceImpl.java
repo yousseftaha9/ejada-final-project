@@ -33,7 +33,7 @@ public class BffServiceImpl implements BffService {
         try {
             // Step 1: Get user profile (blocking call)
             UserProfileDto userProfile = userServiceClient.get()
-                    .uri("/user/{userId}/profile", userId)
+                    .uri("/users/{userId}/profile", userId)
                     .retrieve()
                     .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
 

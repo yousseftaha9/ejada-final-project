@@ -162,7 +162,6 @@ public class TransactionServiceImpl implements TransactionService {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
 
-        // Update transaction status to SUCCESS
         transaction.setStatus(Transactions.Status.SUCCESS);
         transactionRepository.save(transaction);
 
@@ -320,10 +319,8 @@ public class TransactionServiceImpl implements TransactionService {
                     ))
                     .forEach(response::add);
 
-            // Sort by timestamp (most recent first)
             response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
 
-            // Log a summary instead of the full response to avoid data truncation
             kafkaLogger.log(response, "Response");
 
             return ResponseEntity.ok(response);
