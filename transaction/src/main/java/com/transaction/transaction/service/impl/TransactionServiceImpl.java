@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.transaction.transaction.entity.Transaction;
+import com.transaction.transaction.entity.Transactions;
 import com.transaction.transaction.repository.TransactionRepository;
 import com.transaction.transaction.service.interfaces.TransactionService;
 import reactor.core.publisher.Mono;
@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -99,20 +98,20 @@ public class TransactionServiceImpl implements TransactionService {
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
-        Transaction transaction = new Transaction();
+        Transactions transaction = new Transactions();
         transaction.setId(java.util.UUID.randomUUID().toString());
         transaction.setFromAccountId(initiateRequestDto.getFromAccountId());
         transaction.setToAccountId(initiateRequestDto.getToAccountId());
         transaction.setAmount(initiateRequestDto.getAmount());
         transaction.setDescription(initiateRequestDto.getDescription());
-        transaction.setStatus(Transaction.Status.INITIATED);
-        transaction.setTimestamp(new java.sql.Timestamp(System.currentTimeMillis()));
+        transaction.setStatus(Transactions.Status.INITIATED);
+        transaction.setTimestamp(java.time.LocalDateTime.now()); 
         transactionRepository.save(transaction);
 
         InitiateResponseDto initiateResponseDto = new InitiateResponseDto();
         initiateResponseDto.setTransactionId(transaction.getId());
         initiateResponseDto.setStatus(transaction.getStatus().name());
-            initiateResponseDto.setTimestamp(transaction.getTimestamp());
+        initiateResponseDto.setTimestamp(transaction.getTimestamp().toString());
 
         kafkaLogger.log(initiateResponseDto, "Response");
         return ResponseEntity.ok(initiateResponseDto);
@@ -121,10 +120,10 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public ResponseEntity<?> executeTransaction(ExecuteRequestDto executeRequestDto) {
         kafkaLogger.log(executeRequestDto, "Request");
-        Transaction transaction = transactionRepository.findById(executeRequestDto.getTransactionId())
+        Transactions transaction = transactionRepository.findById(executeRequestDto.getTransactionId())
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
-        if (transaction.getStatus() != Transaction.Status.INITIATED) {
+        if (transaction.getStatus() != Transactions.Status.INITIATED) {
             ErrorResponse errorResponse = new ErrorResponse(
                 400, 
                 "Bad Request", 
@@ -164,13 +163,13 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Update transaction status to SUCCESS
-        transaction.setStatus(Transaction.Status.SUCCESS);
+        transaction.setStatus(Transactions.Status.SUCCESS);
         transactionRepository.save(transaction);
 
         ExecuteResponseDto responseDto = new ExecuteResponseDto();
         responseDto.setTransactionId(transaction.getId());
         responseDto.setStatus(transaction.getStatus().name());
-        responseDto.setTimestamp(transaction.getTimestamp());
+        responseDto.setTimestamp(transaction.getTimestamp().toString());
 
         kafkaLogger.log(responseDto, "Response");
         return ResponseEntity.ok(responseDto);
@@ -279,8 +278,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .block();
 
             // 2. Get transactions for account (both incoming and outgoing)
-            List<Transaction> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
-            List<Transaction> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
+            List<Transactions> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
+            List<Transactions> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
 
             if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -304,7 +303,7 @@ public class TransactionServiceImpl implements TransactionService {
                             transaction.getToAccountId(),
                             transaction.getAmount(),
                             transaction.getDescription(), // Make amount negative
-                            transaction.getTimestamp(),
+                            transaction.getTimestamp().toString(),
                             "Sent"
                     ))
                     .forEach(response::add);
@@ -316,7 +315,7 @@ public class TransactionServiceImpl implements TransactionService {
                             transaction.getFromAccountId(),
                             transaction.getAmount(), // Keep amount positive
                             transaction.getDescription(),
-                            transaction.getTimestamp(),
+                            transaction.getTimestamp().toString(),
                             "Delivered"
                     ))
                     .forEach(response::add);
@@ -325,8 +324,7 @@ public class TransactionServiceImpl implements TransactionService {
             response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
 
             // Log a summary instead of the full response to avoid data truncation
-            String summary = "Retrieved " + response.size() + " transactions for account " + accountId;
-            kafkaLogger.log(summary, "Response");
+            kafkaLogger.log(response, "Response");
 
             return ResponseEntity.ok(response);
 

@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 public class ExecuteResponseDto {
     private String transactionId;
     private String status;
-    private java.sql.Timestamp timestamp;
+    private String timestamp;
 
 }

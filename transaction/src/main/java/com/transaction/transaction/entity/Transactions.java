@@ -6,14 +6,14 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Transaction {
+public class Transactions {
 
     @Id
     private String id;
@@ -36,11 +36,13 @@ public class Transaction {
 
     @CreationTimestamp
     @Column(updatable = false)
-    private Timestamp timestamp;
+    private LocalDateTime timestamp;
 
     public enum Status {
         INITIATED,
         SUCCESS,
         FAILED
     }
+
+
 }
