@@ -18,15 +18,15 @@ import lombok.NoArgsConstructor;
 public class User {
     @Id
     private String id;
-    @Column(unique=true, nullable = false)
+    @Column(length = 50, unique=true, nullable = false)
     private String username;
-    @Column(unique=true, nullable = false)
+    @Column(length = 100, unique=true, nullable = false)
     private String email;
-    @Column(nullable = false)
+    @Column(length = 50, nullable = false)
     private String firstName;
-    @Column(nullable = false)
+    @Column(length = 50, nullable = false)
     private String lastName;
-    @Column(nullable = false)
-    private String password;
+    @Column(length = 250, nullable = false)
+    private String passwordHash;
     private LocalDateTime createdAt;
 }

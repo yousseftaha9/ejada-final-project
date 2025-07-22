@@ -28,19 +28,16 @@ public class UserServiceImpl implements UserService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final WebClient webClient;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, WebClient.Builder webClientBuilder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8081").build();
     }
 
     @Override
     public ResponseEntity<?> registerUser(RegisterRequestDto registerRequestDto) {
         try {
-            // Log the request
             kafkaLogger.log(registerRequestDto, "Request");
 
             if (registerRequestDto == null) {
@@ -73,7 +70,6 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            // Check if username already exists
             User existingUserByUsername = userRepository.findByUsername(registerRequestDto.getUsername());
             if (existingUserByUsername != null) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -103,10 +99,10 @@ public class UserServiceImpl implements UserService {
             user.setEmail(registerRequestDto.getEmail());
             
             String hashedPassword = passwordEncoder.encode(registerRequestDto.getPassword());
-            user.setPassword(hashedPassword);
+            user.setPasswordHash(hashedPassword);
             
             user.setCreatedAt(LocalDateTime.now());
-            user.setId(UUID.randomUUID().toString()); // Generate a unique ID
+            user.setId(UUID.randomUUID().toString()); 
             User savedUser = userRepository.save(user);
             
             if (savedUser == null) {
@@ -137,7 +133,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> loginUser(LoginRequestDto loginRequestDto) {
         try {
-            // Log the request
             kafkaLogger.log(loginRequestDto, "Request");
 
             String username = loginRequestDto.getUsername();
@@ -173,7 +168,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-            if (!passwordEncoder.matches(password, user.getPassword())) {
+            if (!passwordEncoder.matches(password, user.getPasswordHash())) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     401, 
                     "Unauthorized", 
@@ -211,7 +206,7 @@ public class UserServiceImpl implements UserService {
                 ErrorResponse errorResponse = new ErrorResponse(
                     404, 
                     "Not Found", 
-                    "User not found with the provided ID"
+                    "User not found with the ID: " + id
                 );
                 kafkaLogger.log(errorResponse, "Response");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
