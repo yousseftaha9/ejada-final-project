@@ -202,6 +202,7 @@ public class AccountServiceImpl implements AccountService {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
+  
     private Account buildAccount(CreationRequest request) {
         Account account = new Account();
         account.setId(UUID.randomUUID().toString()); // Generate a unique ID
@@ -212,6 +213,7 @@ public class AccountServiceImpl implements AccountService {
         account.setAccountNumber(generateAccountNumber());
         return account;
     }
+  
     private String generateAccountNumber() {
         // Implement proper account number generation
         return String.format("%010d", new Random().nextInt(1_000_000_000));
@@ -254,7 +256,6 @@ public class AccountServiceImpl implements AccountService {
                             account.getStatus()
                     ))
                     .collect(Collectors.toList());
-             String summary = "Retrieved " + response.size() + " accounts for user " + userId;
 
             kafkaLogger.log(response, "Response");
 

@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "account")
+@Table(name = "accounts")
 public class Account {
     @Id
     private String id;
     @Column(nullable = false)
     private String userId;
-    @Column(unique=true, nullable = false)
+    @Column(length=20, unique=true, nullable = false)
     private String accountNumber;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
