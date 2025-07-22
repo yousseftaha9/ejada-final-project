@@ -15,7 +15,7 @@ import com.user.user.dto.LoginRequestDto;
 import com.user.user.dto.LoginResponseDto;
 import com.user.user.dto.ProfileResponseDto;
 import com.user.user.dto.ErrorResponse;
-import com.user.user.entity.User;
+import com.user.user.entity.Users;
 import com.user.user.repository.UserRepository;
 import com.user.user.service.interfaces.UserService;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -70,7 +70,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            User existingUserByUsername = userRepository.findByUsername(registerRequestDto.getUsername());
+            Users existingUserByUsername = userRepository.findByUsername(registerRequestDto.getUsername());
             if (existingUserByUsername != null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     409, 
@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
             
-            User existingUserByEmail = userRepository.findByEmail(registerRequestDto.getEmail());
+            Users existingUserByEmail = userRepository.findByEmail(registerRequestDto.getEmail());
             if (existingUserByEmail != null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     409, 
@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
 
-            User user = new User();
+            Users user = new Users();
             user.setUsername(registerRequestDto.getUsername());
             user.setFirstName(registerRequestDto.getFirstName());
             user.setLastName(registerRequestDto.getLastName());
@@ -103,7 +103,7 @@ public class UserServiceImpl implements UserService {
             
             user.setCreatedAt(LocalDateTime.now());
             user.setId(UUID.randomUUID().toString()); 
-            User savedUser = userRepository.save(user);
+            Users savedUser = userRepository.save(user);
             
             if (savedUser == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -157,7 +157,7 @@ public class UserServiceImpl implements UserService {
                  return ResponseEntity.badRequest().body(errorResponse);
              }
 
-            User user = userRepository.findByUsername(username);
+            Users user = userRepository.findByUsername(username);
             if (user == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     404, 
@@ -201,7 +201,7 @@ public class UserServiceImpl implements UserService {
             String requestJson = "{\"userId\":\"" + id + "\"}";
             kafkaLogger.log(requestJson, "Request");
 
-            User user = userRepository.findById(id).orElse(null);
+            Users user = userRepository.findById(id).orElse(null);
             if (user == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                     404, 

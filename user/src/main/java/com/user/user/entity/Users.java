@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class Users {
     @Id
     private String id;
     @Column(length = 50, unique=true, nullable = false)

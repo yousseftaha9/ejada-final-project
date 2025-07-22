@@ -2,13 +2,13 @@ package com.user.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.user.user.entity.User;
+import com.user.user.entity.Users;
 
-public interface UserRepository extends JpaRepository<User, String> {
+public interface UserRepository extends JpaRepository<Users, String> {
 
-    User findByUsername(String username);
+    Users findByUsername(String username);
     
-    User findByEmail(String email);
+    Users findByEmail(String email);
     
 }
     

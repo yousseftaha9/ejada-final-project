@@ -161,7 +161,7 @@ public class AccountServiceImpl implements AccountService {
         try {
             ProfileResponseDto user = webClientBuilder.build()
                     .get()
-                    .uri("http://localhost:8081/user/" + creationRequest.getUserId() + "/profile")
+                    .uri("http://localhost:8081/users/" + creationRequest.getUserId() + "/profile")
                     .retrieve()
                     .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
                         // Consume the response body but don't include it in the error
@@ -233,7 +233,7 @@ public class AccountServiceImpl implements AccountService {
         try {
             ProfileResponseDto user = webClientBuilder.build()
                     .get()
-                    .uri("http://localhost:8081/user/" + userId + "/profile")
+                    .uri("http://localhost:8081/users/" + userId + "/profile")
                     .retrieve()
                     .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
                         // Consume the response body but don't include it in the error
@@ -256,7 +256,7 @@ public class AccountServiceImpl implements AccountService {
                     .collect(Collectors.toList());
              String summary = "Retrieved " + response.size() + " accounts for user " + userId;
 
-            kafkaLogger.log(summary, "Response");
+            kafkaLogger.log(response, "Response");
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
