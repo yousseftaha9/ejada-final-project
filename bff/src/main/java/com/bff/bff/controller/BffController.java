@@ -17,7 +17,7 @@ public class BffController {
     private BffService bffService;
 
     @GetMapping("dashboard/{userId}")
-    public Mono<ResponseEntity<DashboardResponseDto>> dashboard(@PathVariable String userId){
+    public ResponseEntity<?> dashboard(@PathVariable String userId){
         return bffService.dashboard(userId);
     }
 }

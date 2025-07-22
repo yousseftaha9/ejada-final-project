@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -295,7 +296,7 @@ public class AccountServiceImpl implements AccountService {
                             }
                     )
                     .onStatus(
-                            status -> status.isError(),  // Fixed: Using lambda instead of method reference
+                            HttpStatusCode::isError,  // Fixed: Using lambda instead of method reference
                             response -> Mono.empty()
                     )
                     .bodyToFlux(TransactionDto.class)
