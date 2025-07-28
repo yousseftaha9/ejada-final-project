@@ -1,6 +1,7 @@
 package com.transaction.transaction.entity;
 
 
+import com.transaction.transaction.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -37,12 +38,5 @@ public class Transactions {
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime timestamp;
-
-    public enum Status {
-        INITIATED,
-        SUCCESS,
-        FAILED
-    }
-
 
 }

@@ -1,8 +1,14 @@
 package com.transaction.transaction.service.impl;
 
 import com.transaction.transaction.dto.*;
+import com.transaction.transaction.enums.Status;
+import com.transaction.transaction.exception.AccountNotFoundException;
+import com.transaction.transaction.exception.NoTransactionsFoundException;
+import com.transaction.transaction.exception.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,8 +27,10 @@ public class TransactionServiceImpl implements TransactionService {
     @Autowired
     private KafkaLogger kafkaLogger;
     
-      private final WebClient.Builder webClientBuilder;
-      private final TransactionRepository transactionRepository;
+    private final WebClient.Builder webClientBuilder;
+    private final TransactionRepository transactionRepository;
+    @Value("${account_service}")
+    private String accountServiceUrl;
 
     @Autowired
     public TransactionServiceImpl(WebClient.Builder webClientBuilder, TransactionRepository transactionRepository) {
@@ -49,14 +57,14 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             fromAccount = webClientBuilder.build()
                 .get()
-                .uri("http://localhost:8083/accounts/" + initiateRequestDto.getFromAccountId())
+                .uri(accountServiceUrl+"/accounts/" + initiateRequestDto.getFromAccountId())
                 .retrieve()
                 .bodyToMono(AccountDto.class)
                 .block();
 
             toAccount = webClientBuilder.build()
                 .get()
-                .uri("http://localhost:8083/accounts/" + initiateRequestDto.getToAccountId())
+                .uri(accountServiceUrl+"/accounts/" + initiateRequestDto.getToAccountId())
                 .retrieve()
                 .bodyToMono(AccountDto.class)
                 .block();
@@ -104,7 +112,7 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setToAccountId(initiateRequestDto.getToAccountId());
         transaction.setAmount(initiateRequestDto.getAmount());
         transaction.setDescription(initiateRequestDto.getDescription());
-        transaction.setStatus(Transactions.Status.INITIATED);
+        transaction.setStatus(Status.INITIATED);
         transaction.setTimestamp(java.time.LocalDateTime.now()); 
         transactionRepository.save(transaction);
 
@@ -123,7 +131,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transactions transaction = transactionRepository.findById(executeRequestDto.getTransactionId())
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
-        if (transaction.getStatus() != Transactions.Status.INITIATED) {
+        if (transaction.getStatus() != Status.INITIATED) {
             ErrorResponse errorResponse = new ErrorResponse(
                 400, 
                 "Bad Request", 
@@ -135,7 +143,7 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             webClientBuilder.build()
                 .put()
-                .uri("http://localhost:8083/accounts/transfer")
+                .uri(accountServiceUrl+"/accounts/transfer")
                 .bodyValue(new TransferRequestDto(
                     transaction.getFromAccountId(),
                     transaction.getToAccountId(),
@@ -162,7 +170,7 @@ public class TransactionServiceImpl implements TransactionService {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
 
-        transaction.setStatus(Transactions.Status.SUCCESS);
+        transaction.setStatus(Status.SUCCESS);
         transactionRepository.save(transaction);
 
         ExecuteResponseDto responseDto = new ExecuteResponseDto();
@@ -253,99 +261,70 @@ public class TransactionServiceImpl implements TransactionService {
 
     // Second approach that is how to know the type from the type field
     @Override
-    public ResponseEntity<?> getAccountTransactions(String accountId) {
+    public List<TransactionResponseWithType> getAccountTransactions(String accountId) {
         kafkaLogger.log(accountId, "Request");
-        // Input validation
-        if (accountId == null || accountId.isBlank()) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    400, "Bad Request", "Account ID must be provided"
-            );            
-            kafkaLogger.log(errorResponse, "Response");
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
 
         try {
             // 1. Verify account exists
             webClientBuilder.build()
                     .get()
-                    .uri("http://localhost:8083/accounts/" + accountId)
+                    .uri(accountServiceUrl+"/accounts/" + accountId)
                     .retrieve()
-                    .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
-                        return Mono.error(new RuntimeException("Account not found with ID: " + accountId));
-                    })
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .defaultIfEmpty("")
+                                    .flatMap(body -> {
+                                        if (response.statusCode() == HttpStatus.NOT_FOUND) {
+                                            return Mono.error(new AccountNotFoundException("Account not found with ID: " + accountId));
+                                        }
+                                        return Mono.error(new ServiceUnavailableException("Account service error: " + body));
+                                    }))
                     .bodyToMono(Void.class)
                     .block();
 
-            // 2. Get transactions for account (both incoming and outgoing)
-            List<Transactions> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
-            List<Transactions> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
-
-            if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
-                ErrorResponse errorResponse = new ErrorResponse(
-                        404, "Not Found",
-                        "No transactions found for account ID " + accountId
-                );
-                kafkaLogger.log(errorResponse, "Response");
-
-
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-                    
-            }
-
-            // 3. Process and combine transactions
-            List<TransactionResponseWithType> response = new ArrayList<>();
-
-            // Outgoing transactions (negative amounts)
-            outgoingTransactions.stream()
-                    .map(transaction -> new TransactionResponseWithType(
-                            transaction.getId(),
-                            transaction.getToAccountId(),
-                            transaction.getAmount(),
-                            transaction.getDescription(), // Make amount negative
-                            transaction.getTimestamp().toString(),
-                            "Sent"
-                    ))
-                    .forEach(response::add);
-
-            // Incoming transactions (positive amounts)
-            incomingTransactions.stream()
-                    .map(transaction -> new TransactionResponseWithType(
-                            transaction.getId(),
-                            transaction.getFromAccountId(),
-                            transaction.getAmount(), // Keep amount positive
-                            transaction.getDescription(),
-                            transaction.getTimestamp().toString(),
-                            "Delivered"
-                    ))
-                    .forEach(response::add);
-
-            response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
-
-            kafkaLogger.log(response, "Response");
-
-            return ResponseEntity.ok(response);
-
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Account not found")) {
-                ErrorResponse errorResponse = new ErrorResponse(
-                        404, "Not Found", e.getMessage()
-                );
-                kafkaLogger.log(errorResponse, "Response");
-
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                         errorResponse);
-            }
-            ErrorResponse errorResponse = new ErrorResponse(
-                    500, "Internal Server Error",
-                    "Failed to retrieve transactions: " + e.getMessage()
-            );
-            kafkaLogger.log(errorResponse, "Response");
-
-            return ResponseEntity.internalServerError().body(
-
-                  errorResponse
-            );
+            throw e; // Re-throw as is if it's already one of our custom exceptions
         }
+        // 2. Get transactions for account (both incoming and outgoing)
+        List<Transactions> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
+        List<Transactions> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);
+
+//        if (outgoingTransactions.isEmpty() && incomingTransactions.isEmpty()) {
+//            throw new NoTransactionsFoundException("No transactions found for account ID " + accountId);
+//        }
+//      if needed I will add it
+        // 3. Process and combine transactions
+        List<TransactionResponseWithType> response = new ArrayList<>();
+
+        // Outgoing transactions (negative amounts)
+        outgoingTransactions.stream()
+                .map(transaction -> new TransactionResponseWithType(
+                        transaction.getId(),
+                        transaction.getToAccountId(),
+                        transaction.getAmount(),
+                        transaction.getDescription(), // Make amount negative
+                        transaction.getTimestamp().toString(),
+                        "Sent"
+                ))
+                .forEach(response::add);
+
+        // Incoming transactions (positive amounts)
+        incomingTransactions.stream()
+                .map(transaction -> new TransactionResponseWithType(
+                        transaction.getId(),
+                        transaction.getFromAccountId(),
+                        transaction.getAmount(), // Keep amount positive
+                        transaction.getDescription(),
+                        transaction.getTimestamp().toString(),
+                        "Delivered" //Received
+                ))
+                .forEach(response::add);
+
+        response.sort(Comparator.comparing(TransactionResponseWithType::getTimestamp).reversed());
+
+        kafkaLogger.log(response, "Response");
+
+        return response;
     }
 
 
