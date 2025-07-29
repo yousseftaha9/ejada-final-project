@@ -83,7 +83,7 @@ public class BffServiceImpl implements BffService {
             response.setLastName(userProfile.getLastName());
             response.setAccounts(accounts);
             System.out.println(response);
-            //kafkaLogger.log(response, "Response");
+            kafkaLogger.log(response, "Response");
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
