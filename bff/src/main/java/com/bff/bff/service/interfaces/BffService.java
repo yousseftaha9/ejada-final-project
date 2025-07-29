@@ -6,5 +6,5 @@ import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 
 public interface BffService {
-    ResponseEntity<?> dashboard(String userId);
+    DashboardResponseDto dashboard(String userId);
 }

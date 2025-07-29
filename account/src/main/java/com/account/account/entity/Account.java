@@ -1,13 +1,14 @@
 package com.account.account.entity;
 
 
+import com.account.account.enums.AccountType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
+import com.account.account.enums.AccountStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -36,12 +37,7 @@ public class Account {
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-    public enum AccountStatus{
-        ACTIVE, INACTIVE
-    }
-    public enum AccountType{
-        SAVINGS, CHECKING
-    }
+
 }
 
 

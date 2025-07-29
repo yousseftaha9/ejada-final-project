@@ -1,5 +1,7 @@
 package com.transaction.transaction.dto;
 
+import com.transaction.transaction.enums.AccountStatus;
+import com.transaction.transaction.enums.AccountType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,11 +18,4 @@ public class AccountDto {
     private BigDecimal balance;
     private AccountStatus accountStatus;
 
-    public enum AccountType {
-        SAVINGS, CHECKING
-    }
-
-    public enum AccountStatus {
-        ACTIVE, INACTIVE
-    }
 }
