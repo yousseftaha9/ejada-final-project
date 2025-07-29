@@ -1,12 +1,14 @@
 package com.user.user.service.interfaces;
 
-import org.springframework.http.ResponseEntity;
 
 import com.user.user.dto.RegisterRequestDto;
+import com.user.user.dto.RegisterResponseDto;
 import com.user.user.dto.LoginRequestDto;
+import com.user.user.dto.LoginResponseDto;
+import com.user.user.dto.ProfileResponseDto;
 
 public interface UserService {
-    ResponseEntity<?> registerUser(RegisterRequestDto registerRequestDto);
-    ResponseEntity<?> loginUser(LoginRequestDto loginRequestDto);
-    ResponseEntity<?> userProfile(String id);
+    RegisterResponseDto registerUser(RegisterRequestDto registerRequestDto);
+    LoginResponseDto loginUser(LoginRequestDto loginRequestDto);
+    ProfileResponseDto userProfile(String id);
 }

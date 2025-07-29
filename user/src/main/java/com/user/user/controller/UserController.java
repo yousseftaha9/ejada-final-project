@@ -1,12 +1,18 @@
 package com.user.user.controller;
 
 import com.user.user.dto.LoginRequestDto;
+import com.user.user.dto.LoginResponseDto;
+import com.user.user.dto.ProfileResponseDto;
 import com.user.user.dto.RegisterRequestDto;
-import com.user.user.service.impl.UserServiceImpl;
+import com.user.user.dto.RegisterResponseDto;
+import com.user.user.service.interfaces.UserService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/users")
@@ -14,20 +20,21 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class UserController {
     
-    private final UserServiceImpl userService;
+    @Autowired
+    private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequestDto registerRequestDto) {
+    public RegisterResponseDto registerUser(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
         return userService.registerUser(registerRequestDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginRequestDto loginRequestDto) {
+    public LoginResponseDto loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         return userService.loginUser(loginRequestDto);
     }
 
     @GetMapping("/{userId}/profile")
-    public ResponseEntity<?> getUserProfile(@PathVariable String userId) {
+    public ProfileResponseDto getUserProfile(@PathVariable String userId) {
         return userService.userProfile(userId);
     }
 }

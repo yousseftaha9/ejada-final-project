@@ -4,19 +4,16 @@ import com.account.account.dto.ErrorResponse;
 import com.account.account.service.impl.KafkaLogger;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import reactor.util.annotation.NonNullApi;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,7 +39,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Validation Error",
                 String.join(", ", errors)
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, headers, status);
     }
     @ExceptionHandler(ConstraintViolationException.class)
@@ -60,7 +57,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Validation Error",
                 String.join(", ", errors)
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(UserNotFoundException.class)
@@ -71,7 +68,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.NOT_FOUND.getReasonPhrase(),
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -83,7 +80,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Invalid Request",
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -95,7 +92,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Account Creation Failed",
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -107,7 +104,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.NOT_FOUND.getReasonPhrase(),
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -119,7 +116,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
@@ -131,7 +128,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "An unexpected error occurred"
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     @ExceptionHandler(InsufficientFundsException.class)
@@ -142,7 +139,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Insufficient Funds",
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(TransferFailedException.class)
@@ -153,7 +150,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Transfer Failed",
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     @ExceptionHandler(AccountRetrievalException.class)
@@ -164,7 +161,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Account Retrieval Failed",
                 ex.getMessage()
         );
-        kafkaLogger.log(errorResponse, "Error");
+        kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

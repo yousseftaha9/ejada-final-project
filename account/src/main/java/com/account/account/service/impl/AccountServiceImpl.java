@@ -73,6 +73,7 @@ public class AccountServiceImpl implements AccountService {
     public AccountResponse getAccount(String id){
         kafkaLogger.log(id, "Request");
         Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("From account not found"));
+       
         AccountResponse profileResponse = new AccountResponse(
                     account.getId(),
                     account.getAccountNumber(),

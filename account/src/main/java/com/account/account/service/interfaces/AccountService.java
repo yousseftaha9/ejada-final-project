@@ -5,7 +5,6 @@ import com.account.account.dto.AccountResponse;
 import com.account.account.dto.CreationRequest;
 import com.account.account.dto.CreationResponse;
 import com.account.account.dto.TransferRequest;
-import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
