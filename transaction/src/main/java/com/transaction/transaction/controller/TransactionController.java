@@ -2,34 +2,39 @@ package com.transaction.transaction.controller;
 
 
 import com.transaction.transaction.dto.ExecuteRequestDto;
+import com.transaction.transaction.dto.ExecuteResponseDto;
 import com.transaction.transaction.dto.InitiateRequestDto;
-import com.transaction.transaction.service.impl.TransactionServiceImpl;
+import com.transaction.transaction.dto.InitiateResponseDto;
+import com.transaction.transaction.dto.TransactionResponseWithType;
+import com.transaction.transaction.service.interfaces.TransactionService;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-//@RequestMapping("/transactions")
 @Validated
 public class TransactionController {
     @Autowired
-    private  TransactionServiceImpl transactionService;
+    private  TransactionService transactionService;
  
     @PostMapping("/transactions/transfer/initiation")
-    public ResponseEntity<?> initiateTransaction(@RequestBody InitiateRequestDto initiateRequestDto) {
+    public InitiateResponseDto initiateTransaction(@Valid @RequestBody InitiateRequestDto initiateRequestDto) {
         return transactionService.initiateTransaction(initiateRequestDto);
     }
     @PostMapping("/transactions/transfer/execution")
-    public ResponseEntity<?> executeTransaction(@RequestBody ExecuteRequestDto executeRequestDto) {
+    public ExecuteResponseDto executeTransaction(@Valid @RequestBody ExecuteRequestDto executeRequestDto) {
         return transactionService.executeTransaction(executeRequestDto);
     }
 
     @GetMapping("/accounts/{accountId}/transactions")
-    public ResponseEntity<?> getAccountTransactions(@PathVariable @NotBlank(message = "Account ID cannot be blank") String accountId){
-        return ResponseEntity.ok(transactionService.getAccountTransactions(accountId));
+    public List<TransactionResponseWithType> getAccountTransactions(@PathVariable @NotBlank(message = "Account ID cannot be blank") String accountId){
+        return transactionService.getAccountTransactions(accountId);
     }
 
 }
