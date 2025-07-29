@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -24,17 +25,17 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public RegisterResponseDto registerUser(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
-        return userService.registerUser(registerRequestDto);
+    public ResponseEntity<RegisterResponseDto> registerUser(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
+        return ResponseEntity.ok(userService.registerUser(registerRequestDto));
     }
 
     @PostMapping("/login")
-    public LoginResponseDto loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto) {
-        return userService.loginUser(loginRequestDto);
+    public ResponseEntity<LoginResponseDto> loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto) {
+        return ResponseEntity.ok(userService.loginUser(loginRequestDto));
     }
 
     @GetMapping("/{userId}/profile")
-    public ProfileResponseDto getUserProfile(@PathVariable String userId) {
-        return userService.userProfile(userId);
+    public ResponseEntity<ProfileResponseDto> getUserProfile(@PathVariable String userId) {
+        return ResponseEntity.ok(userService.userProfile(userId));
     }
 }

@@ -157,10 +157,10 @@ public class TransactionServiceImpl implements TransactionService {
                     .bodyToMono(Void.class)
                     .block();
 
-        } catch (RuntimeException e) {
-            throw e; // Re-throw as is if it's already one of our custom exceptions
+        }  catch (Exception e) {
+            throw new ServiceUnavailableException("Failed to communicate with account service: " + e.getMessage());
         }
-        
+
         // 2. Get transactions for account (both incoming and outgoing)
         List<Transactions> outgoingTransactions = transactionRepository.findOutgoingTransactions(accountId);
         List<Transactions> incomingTransactions = transactionRepository.findIncomingTransactions(accountId);

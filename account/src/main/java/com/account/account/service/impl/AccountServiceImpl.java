@@ -109,8 +109,8 @@ public class AccountServiceImpl implements AccountService {
                     .bodyToMono(ProfileResponseDto.class)
                     .block();
 
-        } catch (RuntimeException e) {
-            throw e; // Re-throw as is if it's already one of our custom exceptions
+        } catch (Exception e) {
+            throw new ServiceUnavailableException("Failed to communicate with user service: " + e.getMessage());
         }
         Account account = buildAccount(creationRequest);
         Account savedAccount = accountRepository.save(account);
@@ -159,8 +159,8 @@ public class AccountServiceImpl implements AccountService {
                                     }))
                     .bodyToMono(ProfileResponseDto.class)
                     .block();
-        } catch (RuntimeException e) {
-            throw e; // Re-throw as is if it's already one of our custom exceptions
+        } catch (Exception e) {
+            throw new ServiceUnavailableException("Failed to communicate with user service: " + e.getMessage());
         }
         List<Account> accounts = accountRepository.findByUserId(userId);
         List<AccountResponse> response = accounts.stream()

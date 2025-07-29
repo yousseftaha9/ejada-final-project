@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,6 +42,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         kafkaLogger.log(errorResponse, "Response");
         return new ResponseEntity<>(errorResponse, headers, status);
+    }
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
+        String message = "Invalid request format";
+        if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+            message = ex.getCause().getMessage();
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                message
+        );
+        kafkaLogger.log(errorResponse, "Response");
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(

@@ -181,8 +181,9 @@ public class BffServiceImpl implements BffService {
             kafkaLogger.log(response, "Response");
 
             return response;
+        } catch (org.springframework.web.reactive.function.client.WebClientRequestException e) {
+            throw new ServiceUnavailableException("Failed to connect with service : " + e.getMessage());
         } catch (RuntimeException e) {
-            //kafkaLogger.log(e.getMessage(), "Error");
             throw e; // Let the global exception handler handle it
         }
     }

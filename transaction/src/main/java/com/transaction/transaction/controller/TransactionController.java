@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,17 +25,17 @@ public class TransactionController {
     private  TransactionService transactionService;
  
     @PostMapping("/transactions/transfer/initiation")
-    public InitiateResponseDto initiateTransaction(@Valid @RequestBody InitiateRequestDto initiateRequestDto) {
-        return transactionService.initiateTransaction(initiateRequestDto);
+    public ResponseEntity<InitiateResponseDto> initiateTransaction(@Valid @RequestBody InitiateRequestDto initiateRequestDto) {
+        return ResponseEntity.ok(transactionService.initiateTransaction(initiateRequestDto));
     }
     @PostMapping("/transactions/transfer/execution")
-    public ExecuteResponseDto executeTransaction(@Valid @RequestBody ExecuteRequestDto executeRequestDto) {
-        return transactionService.executeTransaction(executeRequestDto);
+    public ResponseEntity<ExecuteResponseDto> executeTransaction(@Valid @RequestBody ExecuteRequestDto executeRequestDto) {
+        return ResponseEntity.ok(transactionService.executeTransaction(executeRequestDto));
     }
 
     @GetMapping("/accounts/{accountId}/transactions")
-    public List<TransactionResponseWithType> getAccountTransactions(@PathVariable @NotBlank(message = "Account ID cannot be blank") String accountId){
-        return transactionService.getAccountTransactions(accountId);
+    public ResponseEntity<List<TransactionResponseWithType>> getAccountTransactions(@PathVariable @NotBlank(message = "Account ID cannot be blank") String accountId){
+        return ResponseEntity.ok(transactionService.getAccountTransactions(accountId));
     }
 
 }
