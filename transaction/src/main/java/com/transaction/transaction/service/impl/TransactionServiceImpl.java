@@ -1,5 +1,7 @@
 package com.transaction.transaction.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transaction.transaction.dto.*;
 import com.transaction.transaction.enums.Status;
 import com.transaction.transaction.exception.AccountNotFoundException;
@@ -61,11 +63,35 @@ public class TransactionServiceImpl implements TransactionService {
                 .bodyToMono(AccountDto.class)
                 .block();
 
-        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-            throw new ServiceUnavailableException("Failed to retrieve account information: " + e.getMessage());
-        } catch (Exception e) {
-            throw new ServiceUnavailableException("Failed to communicate with account service: " + e.getMessage());
+       } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+    String errorMessage = e.getResponseBodyAsString();
+    try {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(errorMessage);
+
+        if (root.has("message")) {
+            String message = root.get("message").asText();
+
+            if (message.trim().startsWith("{")) {
+                JsonNode inner = mapper.readTree(message);
+                if (inner.has("message")) {
+                    errorMessage = inner.get("message").asText();
+                } else {
+                    errorMessage = message;
+                }
+            } else {
+                errorMessage = message;
+            }
         }
+    } catch (Exception parseException) {
+        errorMessage = e.getResponseBodyAsString();
+    }
+
+    throw new ServiceUnavailableException("Failed to retrieve account information: " + errorMessage);
+
+} catch (Exception e) {
+    throw new ServiceUnavailableException("Failed to communicate with account service: " + e.getMessage());
+}
 
         if (fromAccount == null || toAccount == null) {
             throw new AccountNotFoundException("Invalid account details provided");
@@ -117,13 +143,47 @@ public class TransactionServiceImpl implements TransactionService {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .block();
+                
+            transaction.setStatus(Status.SUCCESS);
         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-            throw new TransactionExecutionException("Failed to execute transaction: " + e.getMessage());
+            transaction.setStatus(Status.FAILED);
+            transactionRepository.save(transaction);
+            
+            String errorMessage = e.getResponseBodyAsString();
+            if (errorMessage != null && !errorMessage.trim().isEmpty()) {
+                try {
+                        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(errorMessage);
+
+        if (root.has("message")) {
+            String message = root.get("message").asText();
+
+            if (message.trim().startsWith("{")) {
+                JsonNode inner = mapper.readTree(message);
+                if (inner.has("message")) {
+                    errorMessage = inner.get("message").asText();
+                } else {
+                    errorMessage = message;
+                }
+            } else {
+                errorMessage = message;
+            }
+        }
+                } catch (Exception parseException) {
+                    errorMessage = e.getResponseBodyAsString();
+                }
+            } else {
+                errorMessage = "Account service error: " + e.getStatusCode();
+            }
+            
+            throw new TransactionExecutionException(errorMessage);
         } catch (Exception e) {
+            transaction.setStatus(Status.FAILED);
+            transactionRepository.save(transaction);
+            
             throw new ServiceUnavailableException("Failed to communicate with account service: " + e.getMessage());
         }
 
-        transaction.setStatus(Status.SUCCESS);
         transactionRepository.save(transaction);
 
         ExecuteResponseDto responseDto = new ExecuteResponseDto();
