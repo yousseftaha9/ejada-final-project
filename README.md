@@ -1,18 +1,27 @@
-Virtual Bank System 🏦
-A comprehensive, microservices-based Virtual Bank System developed during my internship at Ejada. This project is a full-stack implementation of a modern banking platform, focusing on scalability, security, and robust software architecture using cutting-edge technologies.
+# 🏦 Virtual Bank System
 
-🚀 Project Overview
-The Virtual Bank System is a distributed application that simulates core banking operations. It is built on a microservices architecture to ensure high availability, independent scalability, and resilience. The system separates concerns into distinct services, managed by an API Gateway and aggregated for client-side efficiency through a Backend-for-Frontend (BFF) layer.
+A **comprehensive microservices-based Virtual Bank System** developed during my internship at **Ejada Systems Ltd.**  
+This project represents a **full-stack implementation** of a modern digital banking platform, emphasizing **scalability, security, and resilience** using **cutting-edge technologies** and modern **software architecture**.
 
-This project provided hands-on, real-world experience in designing, developing, and integrating secure and scalable distributed systems.
+---
 
-🏗️ System Architecture
-The architecture follows modern cloud-native principles, consisting of the following key components:
+## 🚀 Project Overview
 
+The **Virtual Bank System** is a distributed application simulating **core banking operations**.  
+It follows a **microservices architecture** to ensure **independent scalability**, **fault tolerance**, and **modular development**.  
 
+The system integrates with a **Backend-for-Frontend (BFF)** layer for optimized client-side performance and utilizes the **WSO2 API Gateway** for **API management, security, throttling, and routing**.
+
+This project provided hands-on experience in **designing, developing, and integrating secure distributed systems** within an enterprise-level environment.
+
+---
+
+## 🏗️ System Architecture
+
+```
 +----------------+      +-----------------+      +---------------------+
 |                |      |                 |      |                     |
-|   React Frontend|----->|  BFF (Gateway)  |----->| WSO2 API Gateway    |
+| React Frontend |----->|  BFF (Gateway)  |----->| WSO2 API Gateway    |
 |                |      | (Spring Boot)   |      | (Security, Routing) |
 +----------------+      +-----------------+      +----------+----------+
                                                            |
@@ -21,16 +30,13 @@ The architecture follows modern cloud-native principles, consisting of the follo
     |                          |                          |                          |
 +---v----------+       +-------v--------+       +---------v---------+       +--------v---------+
 |              |       |                |       |                   |       |                  |
-| User Service |       | Account Service|       | Transaction Service|       |   Logging Service|
+| User Service |       | Account Service|       | Transaction Service|       | Logging Service  |
 | (Spring Boot)|       |  (Spring Boot) |       |    (Spring Boot)  |       |   (Spring Boot)  |
 +--------------+       +----------------+       +-------------------+       +------------------+
-        |                      |                          |                          |
         |                      |                          |                          |
 +----------------------------------------------------------------------------------------------+
 |                                       PostgreSQL Databases                                  |
 +----------------------------------------------------------------------------------------------+
-        |                      |                          |                          |
-        +----------------------+--------------------------+--------------------------+
                                                  |
                                             +----v----+
                                             |         |
@@ -45,147 +51,156 @@ The architecture follows modern cloud-native principles, consisting of the follo
                                             | & Jobs  |
                                             | (Spring)|
                                             +---------+
-⭐ Key Features
-User Management: Secure user registration, authentication, and profile management.
+```
 
-Account Management: Create, view, and manage different types of bank accounts (e.g., Savings, Checking).
+---
 
-Transaction Processing: Perform secure financial transactions (transfers, deposits, withdrawals) with consistency.
+## ⭐ Key Features
 
-Centralized Logging: All system events, transactions, and errors are asynchronously logged via Kafka for auditing and debugging.
+- **User Management:** Secure registration, authentication, and profile management.  
+- **Account Management:** Create and manage savings or checking accounts.  
+- **Transaction Processing:** Reliable financial transactions (transfers, deposits, withdrawals).  
+- **Centralized Logging:** Asynchronous event logging through **Kafka** for auditing and debugging.  
+- **Scheduled Maintenance:** Automated jobs triggered by Kafka for periodic account operations.  
+- **API Management & Security:** Managed and secured via **WSO2 API Gateway**.  
+- **BFF Layer:** Simplifies frontend integration by aggregating backend responses efficiently.  
 
-Scheduled Maintenance: Automated, Kafka-triggered jobs for account-related maintenance tasks (e.g., applying interest, archiving old accounts).
+---
 
-API Management & Security: All external traffic is routed through the WSO2 API Gateway for security, rate limiting, and monitoring.
+## 🛠️ Technology Stack
 
-BFF Layer: A dedicated Backend-for-Frontend service to aggregate data from multiple microservices, simplifying the frontend's interaction with the backend.
+### **Backend**
+- **Java 17 / 11** – Core programming language  
+- **Spring Boot 2.7 / 3.0** – Microservices framework  
+- **Spring Security** – Authentication & authorization  
+- **Spring Data JPA** – ORM for PostgreSQL  
+- **Spring for Apache Kafka** – Event-driven messaging  
 
-🛠️ Technology Stack
-Backend
-Java 17/11: Primary programming language.
+### **API & Integration**
+- **WSO2 API Manager** – API gateway for security and throttling  
+- **Spring Cloud Gateway (BFF)** – Backend-for-Frontend integration layer  
 
-Spring Boot 2.7/3.0: Framework for building microservices.
+### **Messaging & Processing**
+- **Apache Kafka** – Message broker for asynchronous communication  
 
-Spring Security: For authentication and authorization.
+### **Database**
+- **PostgreSQL** – Relational database (per service)  
 
-Spring Data JPA: For database interaction.
+### **Others**
+- **Maven** – Dependency management and build automation  
+- **Docker & Docker Compose** – Containerization for local setup  
 
-Spring for Apache Kafka: For event-driven messaging and logging.
+---
 
-API & Integration
-WSO2 API Manager: API gateway for security, throttling, and routing.
+## 🚦 Getting Started
 
-Spring Cloud Gateway (BFF): Used as the Backend-for-Frontend layer.
+### **Prerequisites**
+- Java 17 or 11  
+- Maven 3.6+  
+- Node.js & npm  
+- Docker & Docker Compose  
+- Running WSO2 API Manager instance  
 
-Messaging & Asynchronous Processing
-Apache Kafka: Message broker for asynchronous communication and event streaming.
+---
 
-Database
-PostgreSQL: Relational database for each microservice (can be per-service or shared schema).
+### **Installation & Local Development**
 
-Others
-Maven: Dependency management and build automation.
-
-Docker & Docker Compose: For containerization and local development environment setup.
-
-🚦 Getting Started
-Prerequisites
-Java 17 or 11
-
-Maven 3.6+
-
-Node.js & npm
-
-Docker & Docker Compose
-
-A running WSO2 API Manager instance (or use the provided Docker setup if applicable)
-
-Installation & Local Development
-Clone the repository
-
-bash
+#### 1. Clone the repository
+```bash
 git clone <your-project-repo-link>
 cd virtual-bank-system
-Start the Infrastructure with Docker Compose
-This will start PostgreSQL, Kafka, Zookeeper, and any other required infrastructure.
+```
 
-bash
+#### 2. Start infrastructure with Docker Compose  
+This launches **PostgreSQL**, **Kafka**, **Zookeeper**, and related dependencies.  
+```bash
 docker-compose up -d
-Run the Microservices
-You can run each Spring Boot microservice from your IDE or the command line.
+```
 
-bash
-# Navigate to each service directory and run:
+#### 3. Run the microservices  
+Each service can be started via IDE or terminal.  
+```bash
+# Navigate to each microservice and run:
 mvn spring-boot:run
-Run the services in this recommended order:
+```
+Recommended startup order:
+1. `user-service`  
+2. `account-service`  
+3. `transaction-service`  
+4. `logging-service`  
+5. `bff-gateway`  
 
-user-service
+#### 4. Configure & run the WSO2 API Gateway  
+- Import the provided API definitions into **WSO2 API Manager**.  
+- Deploy the APIs and obtain gateway endpoints.  
+- Update the **BFF configuration** to route requests via the WSO2 Gateway URL.  
 
-account-service
-
-transaction-service
-
-logging-service
-
-bff-gateway
-
-Configure and Run the WSO2 API Gateway
-
-Import the provided API definitions into your WSO2 API Manager publisher portal.
-
-Deploy the APIs and obtain the gateway endpoints.
-
-Update the bff-gateway configuration to route requests through the WSO2 Gateway URL.
-
-Run the Frontend
-
-bash
+#### 5. Run the frontend  
+```bash
 cd frontend
 npm install
 npm start
-The application will be available at http://localhost:3000.
+```
+Access the app at: [http://localhost:3000](http://localhost:3000)
 
-Configuration
-Each service uses application.yml for configuration. Key configurations include:
+---
 
-Database URLs: Point to your local PostgreSQL instances.
+## ⚙️ Configuration
 
-Kafka Broker: localhost:9092
+Each service uses an `application.yml` file for configuration.  
+Important parameters include:
+- **Database URLs:** PostgreSQL instance addresses  
+- **Kafka Broker:** `localhost:9092`  
+- **Service Discovery:** (Optional) Eureka server address  
+- **WSO2 Endpoints:** Base URL for gateway  
 
-Service Discovery: Eureka server location (if used).
+---
 
-WSO2 Endpoints: The base URL of your WSO2 API Gateway.
+## 🔧 API Endpoints (via WSO2 Gateway)
 
-🔧 API Endpoints (Via WSO2 Gateway)
-All endpoints are secured and accessed through the WSO2 API Gateway. Example endpoints:
+| Method | Endpoint | Description |
+|---------|-----------|-------------|
+| POST | `/api/v1/users/register` | Register a new user |
+| GET | `/api/v1/accounts/{userId}` | Retrieve all user accounts |
+| POST | `/api/v1/transactions/transfer` | Execute a fund transfer |
 
-POST /api/v1/users/register - Register a new user.
+> 💡 For a complete list of APIs, refer to each service’s **Swagger/OpenAPI documentation** or the **WSO2 Developer Portal**.
 
-GET /api/v1/accounts/{userId} - Get accounts for a user.
+---
 
-POST /api/v1/transactions/transfer - Initiate a fund transfer.
+## 🗄️ Data Flow
 
-*Please refer to the individual service Swagger/OpenAPI documentation or the WSO2 Developer Portal for a complete list of available APIs.*
+1. **Frontend** → sends request to **BFF**  
+2. **BFF** → forwards to **WSO2 API Gateway**  
+3. **WSO2** → applies security, throttling, and routing rules  
+4. **Microservice** → processes the request and emits Kafka events  
+5. **Logging Service & Consumers** → asynchronously handle logs and maintenance tasks  
 
-🗄️ Data Flow
-A client (React frontend) makes a request to the BFF.
+---
 
-The BFF forwards the request through the WSO2 API Gateway.
+## 🙏 Acknowledgments
 
-The WSO2 Gateway applies security policies (JWT validation, rate limiting) and routes the request to the appropriate microservice.
+Special thanks to **Nancy Ibrahim**, my mentor at **Ejada Systems Ltd.**,  
+for her continuous support, guidance, and encouragement throughout this project.
 
-The microservice (e.g., transaction-service) processes the request, updates its database, and publishes an event (e.g., TRANSACTION_COMPLETED) to a Kafka topic.
+---
 
-The logging-service and kafka-consumer-jobs consume these events to update logs and perform maintenance tasks asynchronously.
+## 🔗 Project Link
 
-🙏 Acknowledgments
-A special and heartfelt thanks to Nancy Ibrahim, my mentor and guide at Ejada. Her incredible support, patience, and kindness were instrumental in the successful completion of this project and my learning journey.
+**GitHub Repository:** [https://lnkd.in/dfB-y2Nv](https://lnkd.in/dfB-y2Nv)
 
-🔗 Project Link
-GitHub Repository: https://lnkd.in/dfB-y2Nv
+---
 
-📄 License
-This project was developed as part of an internship program at Ejada. It is intended for portfolio and educational purposes.
+## 📄 License
 
-Developed by Youssef Mohamed Taha and Abdelrahman Ahmed
-Looking forward to applying these skills in my career ahead. Thank you, Ejada, for this amazing learning opportunity!
+This project was developed as part of an internship program at **Ejada Systems Ltd.**  
+It is intended for **portfolio and educational purposes only**.
+
+---
+
+**Developed by:**  
+🧑‍💻 **Youssef Mohamed Taha**  
+🤝 **Abdelrahman Ahmed**
+
+> Looking forward to applying the skills gained from this experience in future projects.  
+> Thank you, **Ejada**, for this incredible learning journey!
