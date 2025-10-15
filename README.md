@@ -1,7 +1,7 @@
 # 🏦 Virtual Bank System
 
 A **comprehensive microservices-based Virtual Bank System** developed during my internship at **Ejada Systems Ltd.**  
-This project represents a **full-stack implementation** of a modern digital banking platform, emphasizing **scalability, security, and resilience** using **cutting-edge technologies** and modern **software architecture**.
+This project represents a **Backend implementation** of a modern digital banking platform, emphasizing **scalability, security, and resilience** using **cutting-edge technologies** and modern **software architecture**.
 
 ---
 
@@ -185,11 +185,6 @@ for her continuous support, guidance, and encouragement throughout this project.
 
 ---
 
-## 🔗 Project Link
-
-**GitHub Repository:** [https://lnkd.in/dfB-y2Nv](https://lnkd.in/dfB-y2Nv)
-
----
 
 ## 📄 License
 
